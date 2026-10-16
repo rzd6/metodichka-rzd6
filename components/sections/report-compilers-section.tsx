@@ -243,7 +243,7 @@ export function ReportCompilerSection({ userRole, userNickname, secondaryRole }:
     )
   }
 
-  // ────────────────────────── ПАССАЖИРСКИЙ ��ЕРЕГОНЫ ──────────────────────────
+  // ────────────────────────── ПАССАЖИРСКИЕ ПЕРЕГОНЫ ──────────────────────────
   const generatePassengerSegments = (segs: ReportSegment[], callSign: string) => {
     const loco = selectedLocomotive!
     const lowerLoco = getLowercaseLocomotive(loco)
@@ -304,7 +304,7 @@ export function ReportCompilerSection({ userRole, userNickname, secondaryRole }:
             `cr Диспетчер!`,
             `tr ${passNumber} ДНЦ ${dispatcherName}, слушаю.`,
             `cr ${loco}-${locomotiveNumber} ${callSign} прибыл под посадку на 2 путь ст. Мирный, машинист ${machinistName}.`,
-            `tr ${passNumber} Понятно, прибыли под посадку на 2 путь ст. М��р��ый, ожидайте 1 минуту.`,
+            `tr ${passNumber} Понятно, прибыли под посадку на 2 путь ст. Мирный, ожидайте 1 минуту.`,
             `r [ДНЦ] ${loco}-${locomotiveNumber} ${callSign} прибыл на 2 путь ст. Мирный, стоянка 1 минута.`,
           ],
         })
@@ -523,7 +523,7 @@ export function ReportCompilerSection({ userRole, userNickname, secondaryRole }:
             `cr Диспетчер!`,
             `tr ${passNumber} ДНЦ ${dispatcherName}, слушаю.`,
             `cr Машинист ${machinistName}, приняли ${lowerLoco}-${locomotiveNumber}, Присвоили позывной ${callSign}.`,
-            `cr Зап��лни��и документацию. Магистраль продули, башмаки убрали, состав готов к выезду на линию.`,
+            `cr Заполнили документацию. Магистраль продули, башмаки убрали, состав готов к выезду на линию.`,
             `tr ${passNumber} Понятно, приняли ${lowerLoco}-${locomotiveNumber}, Присвоен позывной ${callSign}.`,
             `tr ${passNumber} Заполнили документацию. Магистраль продули, башмаки убрали, ожидайте отправления.`,
             `cr Принято.`,

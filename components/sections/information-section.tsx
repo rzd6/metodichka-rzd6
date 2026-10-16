@@ -534,7 +534,7 @@ function LeadershipSection({ getTieColor, theme }: any) {
             <div className="space-y-2">
               <PositionRow label="Начальник ЭО*" positionTitle="Начальник ЭО" />
               <PositionRow label="Начальник ЦдУД*" positionTitle="Начальник ЦдУД" />
-              <PositionRow label="Н��чальник ПТО*" positionTitle="Начальник ПТО" />
+              <PositionRow label="Начальник ПТО*" positionTitle="Начальник ПТО" />
             </div>
           </div>
 
@@ -666,7 +666,7 @@ function DutiesSection({ getTieColor, theme, userRole }: any) {
                   className={`p-4 rounded-xl border ${theme.mode === "dark" ? "bg-white/5 border-white/10" : "bg-gray-50 border-gray-200"}`}
                 >
                   <p className={`font-semibold mb-2 ${theme.mode === "dark" ? "text-white" : "text-gray-900"}`}>
-                    Основная обяз��нность:
+                    Основная обязанность:
                   </p>
                   <p className={`text-sm leading-relaxed ${theme.mode === "dark" ? "text-white/70" : "text-gray-600"}`}>
                     Ремонт железнодорожных путей. Если у него есть водительское удостоверение категории C, то он может

@@ -216,7 +216,7 @@ const getActivityTypesFromRequirement = (requirement: string): string[] => {
   const activityMappings: { [key: string]: string[] } = {
     "лекция про объекты железной дороги": ["лекция про объекты железной дороги"],
     "лекции про объекты железной дороги": ["лекция про объекты железной дороги"],
-    "межфракцио����������ное мероприятие": ["межфракционное мероприятие"],
+    "межфракционное мероприятие": ["межфракционное мероприятие"],
     "выездное мероприятие": ["выездное мероприятие", "выездные мероприятия"],
     "мероприятие для сотрудников": ["мероприятие для сотрудников"],
     "мероприятие по тех. осмотру": ["мероприятие по тех. осмотру поездов"],
@@ -851,7 +851,7 @@ export function ReportGenerationSection() {
     if (!finalTitle) {
       toast({
         title: "Ошибка",
-        description: "Пожалуйста, укажите название ра��оты или выбранное требование",
+        description: "Пожалуйста, укажите название работы или выбранное требование",
         variant: "destructive",
       })
       return
@@ -1111,7 +1111,7 @@ export function ReportGenerationSection() {
   const generatePTOReport = (): string => {
     const today = new Date().toLocaleDateString("ru-RU")
 
-    let report = `Начальнику Производст��енн��-технического отдела\nОАО "РЖД" по Республике Провинция\nот ${ptoReportData.fullNameGenitive}\n\n`
+    let report = `Начальнику Производственно-технического отдела\nОАО "РЖД" по Республике Провинция\nот ${ptoReportData.fullNameGenitive}\n\n`
     report += `Отчёт о проделанной работе ПТО\n\n`
     report += `Я, ${ptoReportData.fullName}, находящийся в должности ${ptoReportData.position}, оставляю отчёт о проделанной работе для повышения в должности с ${formatDate(ptoReportData.dateFrom)} по ${formatDate(ptoReportData.dateTo)} и прикрепляю к отчёту следующие документы:\n\n`
 
@@ -1212,7 +1212,7 @@ export function ReportGenerationSection() {
       })
     }
     if (leaderReportData.cdudWorkEntries.length > 0) {
-      report += `Ц��УД:\n`
+      report += `ЦдУД:\n`
       leaderReportData.cdudWorkEntries.forEach((entry, i) => {
         report += `${i + 1}. ${entry.title} - ${formatFolderUrls(entry.folderUrl)}\n`
       })
@@ -1651,7 +1651,7 @@ export function ReportGenerationSection() {
                 {/* Uploaded entries list */}
                 {currentEntries.length > 0 && (
                   <div className="space-y-2 mt-4">
-                    <h4 className="font-medium text-sm">Загруженные доказа��ельства:</h4>
+                    <h4 className="font-medium text-sm">Загруженные доказательства:</h4>
                     {currentEntries.map((entry, index) => (
                       <div
                         key={entry.id}
@@ -3329,7 +3329,7 @@ export function ReportGenerationSection() {
                 <Label htmlFor="warnings">7. Выданные выговоры</Label>
                 <Textarea
                   id="warnings"
-                  placeholder="Ник��еймы, причины, количество..."
+                  placeholder="Никнеймы, причины, количество..."
                   value={leaderReportData.warnings}
                   onChange={(e) => setLeaderReportData((prev) => ({ ...prev, warnings: e.target.value }))}
                   rows={4}
