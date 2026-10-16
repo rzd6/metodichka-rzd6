@@ -694,6 +694,7 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed, setIsColl
                       : { backgroundColor: "transparent" }
                   }
                   onClick={() => onSectionChange(section.id)}
+                  data-tour-section={displayLabel}
                   data-tour={section.id === "report-compiler" ? "report-compilers" : section.id === "admin" ? "admin" : undefined}
                   title={isCollapsed ? displayLabel : undefined}
                 >
@@ -722,11 +723,10 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed, setIsColl
           )}
 
           <div className={`mt-auto pt-4 mb-2 ${isCollapsed ? "space-y-2" : "space-y-2"}`}>
-            {!isCollapsed ? (
-              <div className="flex justify-end gap-2">
+            <div className={`flex gap-2 ${isCollapsed ? "flex-col" : ""}`}>
                 <Button
                   variant="outline"
-                  className={`w-10 h-9 p-0 relative bg-transparent ${getTextColor()} hover:${getTextColor()} border-white/20 hover:border-white/40 h-9 px-2`}
+                  className={`flex-1 bg-transparent ${getTextColor()} hover:${getTextColor()} border-white/20 hover:border-white/40 h-9 px-2`}
                   onClick={handleOpenNotifications}
                   data-tour="notifications"
                   title="Уведомления"
@@ -740,15 +740,14 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed, setIsColl
                 </Button>
                 <Button
                   variant="outline"
-                  className={`w-10 h-10 mx-auto p-0 flex items-center justify-center bg-transparent ${getTextColor()} hover:${getTextColor()} border-white/20 hover:border-white/40`}
+                  className={`flex-1 bg-transparent ${getTextColor()} hover:${getTextColor()} border-white/20 hover:border-white/40 h-9 px-2`}
                   onClick={() => setShowSettings(true)}
                   data-tour="settings"
                   title="Настройки"
                 >
                   <Settings className="h-4 w-4" />
                 </Button>
-              </div>
-            ) : null}
+            </div>
 
             {!isCollapsed ? (
               <div className="flex gap-2">
@@ -773,7 +772,7 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed, setIsColl
               <>
                 <Button
                   variant="outline"
-                  className={`w-10 h-10 mx-auto p-0 flex items-center justify-center bg-transparent ${getTextColor()} hover:${getTextColor()} border-white/20 hover:border-white/40`}
+                  className={`flex-1 bg-transparent ${getTextColor()} hover:${getTextColor()} border-white/20 hover:border-white/40 h-9 px-2`}
                   onClick={handleLogout}
                   title="Выйти"
                 >
@@ -781,7 +780,7 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed, setIsColl
                 </Button>
                 <Button
                   variant="outline"
-                  className={`w-10 h-10 mx-auto p-0 flex items-center justify-center bg-transparent ${getTextColor()} hover:${getTextColor()} border-white/20 hover:border-white/40`}
+                  className={`flex-1 bg-transparent ${getTextColor()} hover:${getTextColor()} border-white/20 hover:border-white/40 h-9 px-2`}
                   onClick={() => setIsCollapsed(!isCollapsed)}
                   title="Развернуть"
                 >

@@ -33,8 +33,22 @@ export function OnboardingTour({ user }: OnboardingTourProps) {
   const [step, setStep] = useState(0)
   const [mode, setMode] = useState<"new" | "promotion">("new")
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null)
+  const [sectionSteps, setSectionSteps] = useState<TourStep[]>([])
 
-  const steps = useMemo(() => mode === "promotion" ? (ROLE_ADDITIONS[user.role] ?? []) : BASE_STEPS, [mode, user.role])
+  useEffect(() => {
+    if (!open || mode !== "new") return
+    const discovered = Array.from(document.querySelectorAll<HTMLElement>("[data-tour-section]"))
+      .filter((element) => element.offsetParent !== null)
+      .map((element) => ({
+        target: `[data-tour-section="${element.dataset.tourSection}"]`,
+        title: `Раздел «${element.dataset.tourSection}»`,
+        text: `Нажмите на этот раздел. Здесь собраны материалы и инструменты, доступные вашей роли. Откройте его, осмотрите содержимое и вернитесь в меню для продолжения.`,
+        waitForClick: true,
+      }))
+    setSectionSteps(discovered)
+  }, [open, mode, user.role])
+
+  const steps = useMemo(() => mode === "promotion" ? (ROLE_ADDITIONS[user.role] ?? []) : [...BASE_STEPS, ...sectionSteps], [mode, user.role, sectionSteps])
   const current = steps[step]
 
   useEffect(() => {
@@ -76,17 +90,20 @@ export function OnboardingTour({ user }: OnboardingTourProps) {
   if (!open || !current) return null
   const finish = () => { localStorage.setItem(key, "done"); setOpen(false) }
   const next = () => step >= steps.length - 1 ? finish() : setStep((value) => value + 1)
-  const tooltipStyle = targetRect ? { top: Math.min(targetRect.bottom + 16, window.innerHeight - 250), left: Math.max(16, Math.min(targetRect.left, window.innerWidth - 400)) } : undefined
+  const tooltipStyle = targetRect ? {
+    top: targetRect.top > 320 ? Math.max(16, targetRect.top - 220) : Math.min(targetRect.bottom + 16, window.innerHeight - 220),
+    left: Math.max(16, Math.min(targetRect.left, window.innerWidth - 400)),
+  } : undefined
 
   return (
     <div className="fixed inset-0 z-[110]" role="dialog" aria-modal="true" aria-labelledby="onboarding-title">
-      <div className="absolute inset-0 bg-black/65" />
+      <div className="pointer-events-none absolute inset-0 bg-black/65" />
       {targetRect && <div className="pointer-events-none absolute rounded-xl border-2 shadow-[0_0_0_9999px_rgba(0,0,0,0.65)]" style={{ top: targetRect.top - 6, left: targetRect.left - 6, width: targetRect.width + 12, height: targetRect.height + 12, borderColor: "var(--theme-color, #d89b2b)" }} />}
-      <div className="absolute w-[min(380px,calc(100vw-32px))] rounded-2xl border border-white/15 bg-[#151a20] p-5 text-white shadow-2xl" style={tooltipStyle ?? { top: "50%", left: "50%", transform: "translate(-50%, -50%)" }}>
-        <div className="mb-3 flex items-center justify-between"><span className="text-xs font-semibold uppercase tracking-[0.18em] text-white/45">Методичка · обучение</span><button type="button" onClick={finish} className="rounded-lg px-2 text-xl text-white/55 hover:bg-white/10 hover:text-white" aria-label="Пропустить обучение">×</button></div>
+      <div className="pointer-events-auto absolute w-[min(380px,calc(100vw-32px))] rounded-2xl border border-white/15 bg-background p-5 text-foreground shadow-2xl" style={tooltipStyle ?? { top: "50%", left: "50%", transform: "translate(-50%, -50%)" }}>
+        <div className="mb-3 flex items-center justify-between"><span className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Методичка · обучение</span><button type="button" onClick={finish} className="rounded-lg px-2 text-xl text-white/55 hover:bg-white/10 hover:text-white" aria-label="Пропустить обучение">×</button></div>
         <h2 id="onboarding-title" className="text-xl font-bold">{current.title}</h2>
-        <p className="mt-2 text-sm leading-6 text-white/75">{current.text}</p>
-        <div className="mt-5 flex items-center justify-between gap-3"><span className="text-xs text-white/45">Шаг {step + 1} из {steps.length}</span><div className="flex gap-2"><button type="button" onClick={finish} className="rounded-xl border border-white/15 px-3 py-2 text-sm text-white/70 hover:bg-white/10">Пропустить</button>{current.waitForClick ? <span className="rounded-xl px-3 py-2 text-sm font-semibold text-black" style={{ backgroundColor: "var(--theme-color, #d89b2b)" }}>Нажмите кнопку</span> : <button type="button" onClick={next} className="rounded-xl px-4 py-2 text-sm font-semibold text-black" style={{ backgroundColor: "var(--theme-color, #d89b2b)" }}>{step === steps.length - 1 ? "Понятно" : "Далее"}</button>}</div></div>
+        <p className="mt-2 text-sm leading-6 text-muted-foreground">{current.text}</p>
+        <div className="mt-5 flex items-center justify-between gap-3"><span className="text-xs text-muted-foreground">Шаг {step + 1} из {steps.length}</span><div className="flex gap-2"><button type="button" onClick={finish} className="rounded-xl border border-white/15 px-3 py-2 text-sm text-white/70 hover:bg-white/10">Пропустить</button>{current.waitForClick ? <span className="rounded-xl px-3 py-2 text-sm font-semibold text-primary-foreground" style={{ backgroundColor: "var(--theme-color)" }}>Нажмите кнопку</span> : <button type="button" onClick={next} className="rounded-xl px-4 py-2 text-sm font-semibold text-primary-foreground" style={{ backgroundColor: "var(--theme-color)" }}>{step === steps.length - 1 ? "Понятно" : "Далее"}</button>}</div></div>
       </div>
     </div>
   )
