@@ -10,18 +10,19 @@ interface OnboardingTourProps {
 type TourStep = { target?: string; title: string; text: string; waitForClick?: boolean }
 
 const BASE_STEPS: TourStep[] = [
-  { target: '[data-tour="notifications"]', title: "Уведомления", text: "Это кнопка уведомлений. Нажмите её, чтобы открыть сообщения от старшего и руководящего состава.", waitForClick: true },
-  { title: "Сообщения", text: "В открывшемся окне отображаются важные уведомления. Закройте окно уведомлений и продолжим знакомство." },
-  { target: '[data-tour="settings"]', title: "Настройки", text: "Откройте настройки — здесь можно загрузить свой фон, выбрать готовый фон, сменить тему и цвет интерфейса, пол для докладов и пароль.", waitForClick: true },
-  { title: "Разделы методички", text: "В боковом меню находятся доступные вам разделы: содержание, информация, лекции, доклады, составитель докладов и другие инструменты вашей роли." },
-  { title: "Готово", text: "Теперь вы знаете, где находятся основные возможности. Обучение можно открыть повторно после повышения роли — новые шаги покажут появившиеся разделы и кнопки." },
+  { target: '[data-tour="notifications"]', title: "Кнопка уведомлений", text: "Найдите внизу меню кнопку с колокольчиком и нажмите её. Откроется список уведомлений.", waitForClick: true },
+  { title: "Уведомления от руководства", text: "Здесь появляются сообщения от старшего и руководящего состава. Прочитайте их, затем закройте окно крестиком, чтобы вернуться в методичку." },
+  { target: '[data-tour="settings"]', title: "Откройте настройки", text: "Теперь нажмите кнопку с шестерёнкой внизу меню. Откроется окно настроек.", waitForClick: true },
+  { title: "Внешний вид", text: "Во вкладке «Внешний вид» можно загрузить свой фон, выбрать готовый фон, сменить тему и цвет интерфейса." },
+  { title: "Профиль и доклады", text: "Во вкладке «Аккаунт» можно сменить пол для докладов и пароль. После изменения пароля обязательно сохраните форму." },
+  { title: "Разделы методички", text: "В левом меню откройте нужный раздел: «Информация», «Лекции», «Доклады» или «Составитель докладов». Набор разделов зависит от вашей роли." },
 ]
 
 const ROLE_ADDITIONS: Partial<Record<UserRole, TourStep[]>> = {
-  "ЦдУД": [{ title: "Рейсы и опоздания", text: "В составителе докладов диспетчер может подключиться к рейсу машиниста по его номеру и самостоятельно указать опоздание." }],
-  "Старший Состав": [{ title: "Управление", text: "Вам доступен просмотр управления сотрудниками и контроль рабочих процессов согласно вашей роли." }],
-  "Заместитель": [{ title: "Расширенные разделы", text: "После повышения вам доступны дополнительные разделы и возможности контроля, которые появятся в меню автоматически." }],
-  "Руководство": [{ title: "Контроль и управление", text: "Руководству доступны расширенные разделы контроля и управления сотрудниками." }],
+  "ЦдУД": [{ target: '[data-tour="report-compilers"]', title: "Подключение к рейсу", text: "Откройте «Составитель докладов», введите номер рейса машиниста и выберите подключение. После этого диспетчер сможет самостоятельно выставить опоздание." }],
+  "Старший Состав": [{ target: '[data-tour="admin"]', title: "Просмотр управления", text: "Откройте «Управление», чтобы просматривать список сотрудников и их данные. Изменение аккаунтов для этой роли недоступно." }],
+  "Заместитель": [{ target: '[data-tour="admin"]', title: "Управление сотрудниками", text: "В разделе «Управление» можно просматривать сотрудников и контролировать рабочие данные согласно полномочиям роли." }],
+  "Руководство": [{ target: '[data-tour="admin"]', title: "Управление сотрудниками", text: "Откройте «Управление», чтобы просматривать сотрудников и доступные руководству инструменты контроля." }],
 }
 
 export function OnboardingTour({ user }: OnboardingTourProps) {
@@ -35,6 +36,17 @@ export function OnboardingTour({ user }: OnboardingTourProps) {
 
   const steps = useMemo(() => mode === "promotion" ? (ROLE_ADDITIONS[user.role] ?? []) : BASE_STEPS, [mode, user.role])
   const current = steps[step]
+
+  useEffect(() => {
+    const restart = () => {
+      localStorage.removeItem(key)
+      setMode("new")
+      setStep(0)
+      setOpen(true)
+    }
+    window.addEventListener("restartOnboarding", restart)
+    return () => window.removeEventListener("restartOnboarding", restart)
+  }, [key])
 
   useEffect(() => {
     const saved = localStorage.getItem(key)
@@ -74,7 +86,7 @@ export function OnboardingTour({ user }: OnboardingTourProps) {
         <div className="mb-3 flex items-center justify-between"><span className="text-xs font-semibold uppercase tracking-[0.18em] text-white/45">Методичка · обучение</span><button type="button" onClick={finish} className="rounded-lg px-2 text-xl text-white/55 hover:bg-white/10 hover:text-white" aria-label="Пропустить обучение">×</button></div>
         <h2 id="onboarding-title" className="text-xl font-bold">{current.title}</h2>
         <p className="mt-2 text-sm leading-6 text-white/75">{current.text}</p>
-        <div className="mt-5 flex items-center justify-between gap-3"><span className="text-xs text-white/45">Шаг {step + 1} из {steps.length}</span><div className="flex gap-2"><button type="button" onClick={finish} className="rounded-xl border border-white/15 px-3 py-2 text-sm text-white/70 hover:bg-white/10">Пропустить</button>{current.waitForClick ? <span className="rounded-xl px-3 py-2 text-sm font-semibold text-black" style={{ backgroundColor: "var(--theme-color, #d89b2b)" }}>Нажмите кнопку</span> : <button type="button" onClick={next} className="rounded-xl px-4 py-2 text-sm font-semibold text-black" style={{ backgroundColor: "var(--theme-color, #d89b2b)" }}>{step === steps.length - 1 ? "Завершить" : "Далее"}</button>}</div></div>
+        <div className="mt-5 flex items-center justify-between gap-3"><span className="text-xs text-white/45">Шаг {step + 1} из {steps.length}</span><div className="flex gap-2"><button type="button" onClick={finish} className="rounded-xl border border-white/15 px-3 py-2 text-sm text-white/70 hover:bg-white/10">Пропустить</button>{current.waitForClick ? <span className="rounded-xl px-3 py-2 text-sm font-semibold text-black" style={{ backgroundColor: "var(--theme-color, #d89b2b)" }}>Нажмите кнопку</span> : <button type="button" onClick={next} className="rounded-xl px-4 py-2 text-sm font-semibold text-black" style={{ backgroundColor: "var(--theme-color, #d89b2b)" }}>{step === steps.length - 1 ? "Понятно" : "Далее"}</button>}</div></div>
       </div>
     </div>
   )

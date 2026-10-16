@@ -32,9 +32,10 @@ interface SettingsModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   initialTab?: "appearance" | "account"
+  onRestartOnboarding?: () => void
 }
 
-export function SettingsModal({ open, onOpenChange, initialTab }: SettingsModalProps) {
+export function SettingsModal({ open, onOpenChange, initialTab, onRestartOnboarding }: SettingsModalProps) {
   const { theme, updateTheme } = useTheme()
   const [techMode, setTechMode] = useState(false)
   const [techModeLoading, setTechModeLoading] = useState(false)
@@ -254,6 +255,11 @@ export function SettingsModal({ open, onOpenChange, initialTab }: SettingsModalP
             <Settings className="w-5 h-5" />
             Настройки
           </DialogTitle>
+          {onRestartOnboarding && (
+            <Button type="button" variant="outline" size="sm" onClick={onRestartOnboarding} className="mt-3 w-fit">
+              Пройти обучение заново
+            </Button>
+          )}
         </DialogHeader>
 
         <Tabs value={settingsTab} onValueChange={(v) => setSettingsTab(v as "appearance" | "account")} className="flex-1 flex flex-col min-h-0">

@@ -694,6 +694,7 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed, setIsColl
                       : { backgroundColor: "transparent" }
                   }
                   onClick={() => onSectionChange(section.id)}
+                  data-tour={section.id === "report-compiler" ? "report-compilers" : section.id === "admin" ? "admin" : undefined}
                   title={isCollapsed ? displayLabel : undefined}
                 >
                   <span className="flex items-center justify-center w-5 h-5 flex-shrink-0">
@@ -722,10 +723,10 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed, setIsColl
 
           <div className={`mt-auto pt-4 mb-2 ${isCollapsed ? "space-y-2" : "space-y-2"}`}>
             {!isCollapsed ? (
-              <div className="flex gap-2">
+              <div className="flex justify-end gap-2">
                 <Button
                   variant="outline"
-                  className={`flex-1 relative bg-transparent ${getTextColor()} hover:${getTextColor()} border-white/20 hover:border-white/40 h-9 px-2`}
+                  className={`w-10 h-9 p-0 relative bg-transparent ${getTextColor()} hover:${getTextColor()} border-white/20 hover:border-white/40 h-9 px-2`}
                   onClick={handleOpenNotifications}
                   data-tour="notifications"
                   title="Уведомления"
@@ -792,7 +793,7 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed, setIsColl
         </div>
       </aside>
 
-      <SettingsModal open={showSettings} onOpenChange={setShowSettings} initialTab={settingsInitialTab} />
+      <SettingsModal open={showSettings} onOpenChange={setShowSettings} initialTab={settingsInitialTab} onRestartOnboarding={() => { setShowSettings(false); window.dispatchEvent(new Event("restartOnboarding")) }} />
       <NotificationsModal open={showNotifications} onOpenChange={setShowNotifications} userRole={user.role} secondaryRole={user.secondaryRole} />
     </>
   )
