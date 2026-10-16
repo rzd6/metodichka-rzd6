@@ -155,8 +155,8 @@ export function AdminSection() {
     if (isTargetTechAdmin(user) && !isCurrentTechAdmin()) return false
     if (isCurrentTechAdmin()) return true
     if (currentUser.role === "Руководство") return true
-    if (currentUser.role === "Заместитель") {
-      return user.role === "ПТО" || user.role === "ЦдУД"
+    if (currentUser.role === "Заместитель" || currentUser.role === "Старший Состав") {
+      return false
     }
     return false
   }
@@ -167,11 +167,8 @@ export function AdminSection() {
     if (isTargetTechAdmin(user) && !isCurrentTechAdmin()) return false
     if (isCurrentTechAdmin()) return true
     if (currentUser.role === "Руководство") return true
-    if (currentUser.role === "Заместитель") {
-      return user.role === "ПТО" || user.role === "ЦдУД"
-    }
-    if (currentUser.role === "Старший Состав") {
-      return user.role === "ПТО" || user.role === "ЦдУД"
+    if (currentUser.role === "Заместитель" || currentUser.role === "Старший Состав") {
+      return false
     }
     return false
   }

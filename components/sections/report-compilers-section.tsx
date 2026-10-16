@@ -44,6 +44,8 @@ interface ClaimedShift {
   arrive_end: string | null
   shift_date: string
   delay_minutes: number
+  dispatcher_nickname?: string | null
+  dispatcher_role?: string | null
 }
 
 interface ReportCompilerSectionProps {
@@ -77,9 +79,10 @@ export function ReportCompilerSection({ userRole, userNickname, secondaryRole }:
     const date = getMoscowDateISO()
     const { data } = await apiFetch(`/api/train-shifts?date=${date}&with_trains=1`)
     if (Array.isArray(data)) {
-      setMyShifts(data.filter((s: any) => s.claimed_by_nickname === userNickname))
+      const canDispatch = userRole === "ЦдУД"
+      setMyShifts(canDispatch ? data : data.filter((s: any) => s.claimed_by_nickname === userNickname))
     }
-  }, [userNickname])
+  }, [userNickname, userRole])
 
   useEffect(() => { loadMyShifts() }, [loadMyShifts])
 
@@ -217,8 +220,8 @@ export function ReportCompilerSection({ userRole, userNickname, secondaryRole }:
     // Если есть номер рейса и рейс ещё не занят в расписании — предложить занять
     const trainNum = flightNumber.trim()
     if (trainNum && userNickname) {
-      const alreadyClaimed = myShifts.some((s) => String(s.train_number) === trainNum)
-      if (!alreadyClaimed) {
+      const existingShift = myShifts.find((s) => String(s.train_number) === trainNum)
+      if (userRole === "ЦдУД" ? Boolean(existingShift && !existingShift.dispatcher_nickname) : !existingShift) {
         setClaimDialogTrainNumber(trainNum)
       }
     }
@@ -301,7 +304,7 @@ export function ReportCompilerSection({ userRole, userNickname, secondaryRole }:
             `cr Диспетчер!`,
             `tr ${passNumber} ДНЦ ${dispatcherName}, слушаю.`,
             `cr ${loco}-${locomotiveNumber} ${callSign} прибыл под посадку на 2 путь ст. Мирный, машинист ${machinistName}.`,
-            `tr ${passNumber} Понятно, прибыли под посадку на 2 путь ст. Мир��ый, ожидайте 1 минуту.`,
+            `tr ${passNumber} Понятно, прибыли под посадку на 2 путь ст. М��р��ый, ожидайте 1 минуту.`,
             `r [ДНЦ] ${loco}-${locomotiveNumber} ${callSign} прибыл на 2 путь ст. Мирный, стоянка 1 минута.`,
           ],
         })
@@ -520,7 +523,7 @@ export function ReportCompilerSection({ userRole, userNickname, secondaryRole }:
             `cr Диспетчер!`,
             `tr ${passNumber} ДНЦ ${dispatcherName}, слушаю.`,
             `cr Машинист ${machinistName}, приняли ${lowerLoco}-${locomotiveNumber}, Присвоили позывной ${callSign}.`,
-            `cr Заполни��и документацию. Магистраль продули, башмаки убрали, состав готов к выезду на линию.`,
+            `cr Зап��лни��и документацию. Магистраль продули, башмаки убрали, состав готов к выезду на линию.`,
             `tr ${passNumber} Понятно, приняли ${lowerLoco}-${locomotiveNumber}, Присвоен позывной ${callSign}.`,
             `tr ${passNumber} Заполнили документацию. Магистраль продули, башмаки убрали, ожидайте отправления.`,
             `cr Принято.`,
@@ -896,8 +899,9 @@ export function ReportCompilerSection({ userRole, userNickname, secondaryRole }:
         body: JSON.stringify({
           train_id: train.id,
           train_number: train.train_number,
-          claimed_by_nickname: userNickname,
-          claimed_by_role: userRole ?? "ЦдУД",
+          ...(userRole === "ЦдУД"
+            ? { dispatcher_nickname: userNickname, dispatcher_role: userRole }
+            : { claimed_by_nickname: userNickname, claimed_by_role: userRole ?? "ЦдУД" }),
           shift_date: date,
         }),
       })
@@ -920,10 +924,10 @@ export function ReportCompilerSection({ userRole, userNickname, secondaryRole }:
         <AlertDialogContent className={`border-2 rounded-2xl ${isDark ? "bg-[#0f1419] border-white/10" : "bg-white border-gray-200"}`}>
           <AlertDialogHeader>
             <AlertDialogTitle className={`text-xl font-bold ${isDark ? "text-white" : "text-gray-900"}`}>
-              Занять рейс в расписании?
+              {userRole === "ЦдУД" ? "Подключиться к рейсу?" : "Занять рейс в расписании?"}
             </AlertDialogTitle>
             <AlertDialogDescription className={`text-base ${isDark ? "text-white/70" : "text-gray-600"}`}>
-              Желаете занять рейс{" "}
+              {userRole === "ЦдУД" ? "Подключиться к рейсу машиниста" : "Желаете занять рейс"}{" "}
               <span className="font-semibold" style={{ color: getTieColor() }}>
                 №{claimDialogTrainNumber}
               </span>{" "}
@@ -942,7 +946,7 @@ export function ReportCompilerSection({ userRole, userNickname, secondaryRole }:
               style={{ backgroundColor: getTieColor() }}
             >
               <Train className="w-4 h-4 mr-2" />
-              Да, занять
+              {userRole === "ЦдУД" ? "Да, подключиться" : "Да, занять"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

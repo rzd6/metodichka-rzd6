@@ -103,7 +103,7 @@ export function InformationSection({ userRole, secondaryRole }: InformationSecti
         id: "leadership",
         label: "Руководство и старший состав",
         icon: Users,
-        roles: ["Руководство", "Заместитель", "Старший Состав"],
+        roles: ["ПТО", "ЦдУД", "Старший Состав", "Заместитель", "Руководство"],
       },
       {
         id: "duties",
@@ -460,7 +460,7 @@ function LeadershipSection({ getTieColor, theme }: any) {
       ? theme.mode === "dark"
         ? "text-white/40"
         : "text-gray-400"
-      : "text-orange-500"
+      : ""
 
   const PositionRow = ({ label, positionTitle }: { label: string; positionTitle: string }) => {
     const nickname = isLoading ? "" : getNicknameByPosition(positionTitle)
@@ -478,7 +478,7 @@ function LeadershipSection({ getTieColor, theme }: any) {
           ) : fetchError ? (
             <span className="text-red-400/70 text-xs">нет подключения</span>
           ) : (
-            <span className={positionColor(nickname)}>{nickname}</span>
+            <span className={positionColor(nickname)} style={nickname !== "Вакантно" ? { color: getTieColor() } : undefined}>{nickname}</span>
           )}
         </p>
       </div>
@@ -534,7 +534,7 @@ function LeadershipSection({ getTieColor, theme }: any) {
             <div className="space-y-2">
               <PositionRow label="Начальник ЭО*" positionTitle="Начальник ЭО" />
               <PositionRow label="Начальник ЦдУД*" positionTitle="Начальник ЦдУД" />
-              <PositionRow label="Начальник ПТО*" positionTitle="Начальник ПТО" />
+              <PositionRow label="Н��чальник ПТО*" positionTitle="Начальник ПТО" />
             </div>
           </div>
 
@@ -666,7 +666,7 @@ function DutiesSection({ getTieColor, theme, userRole }: any) {
                   className={`p-4 rounded-xl border ${theme.mode === "dark" ? "bg-white/5 border-white/10" : "bg-gray-50 border-gray-200"}`}
                 >
                   <p className={`font-semibold mb-2 ${theme.mode === "dark" ? "text-white" : "text-gray-900"}`}>
-                    Основная обязанность:
+                    Основная обяз��нность:
                   </p>
                   <p className={`text-sm leading-relaxed ${theme.mode === "dark" ? "text-white/70" : "text-gray-600"}`}>
                     Ремонт железнодорожных путей. Если у него есть водительское удостоверение категории C, то он может

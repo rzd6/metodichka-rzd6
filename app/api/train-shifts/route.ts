@@ -23,6 +23,8 @@ async function ensureTables() {
       claimed_by_role TEXT NOT NULL,
       shift_date DATE NOT NULL DEFAULT CURRENT_DATE,
       delay_minutes INTEGER NOT NULL DEFAULT 0,
+      dispatcher_nickname TEXT DEFAULT NULL,
+      dispatcher_role TEXT DEFAULT NULL,
       created_at TIMESTAMPTZ DEFAULT NOW(),
       UNIQUE(train_number, shift_date)
     );
@@ -30,6 +32,8 @@ async function ensureTables() {
   // Добавляем колонку delay_minutes если её ещё нет (миграция для старых БД)
   await db.query(`
     ALTER TABLE train_shifts ADD COLUMN IF NOT EXISTS delay_minutes INTEGER NOT NULL DEFAULT 0;
+    ALTER TABLE train_shifts ADD COLUMN IF NOT EXISTS dispatcher_nickname TEXT DEFAULT NULL;
+    ALTER TABLE train_shifts ADD COLUMN IF NOT EXISTS dispatcher_role TEXT DEFAULT NULL;
   `)
 }
 
@@ -73,9 +77,18 @@ export async function POST(req: NextRequest) {
     await ensureTables()
     const db = getPool()
     const body = await req.json()
-    const { train_id, train_number, claimed_by_nickname, claimed_by_role, shift_date } = body
+    const { train_id, train_number, claimed_by_nickname, claimed_by_role, dispatcher_nickname, dispatcher_role, shift_date } = body
 
     const date = shift_date || new Date().toISOString().slice(0, 10)
+
+    if (dispatcher_nickname) {
+      const res = await db.query(
+        `UPDATE train_shifts SET dispatcher_nickname = $1, dispatcher_role = $2
+         WHERE train_number = $3 AND shift_date = $4 RETURNING *`,
+        [dispatcher_nickname, dispatcher_role ?? "ЦдУД", train_number, date]
+      )
+      return NextResponse.json({ data: res.rows[0] ?? null })
+    }
 
     const res = await db.query(
       `INSERT INTO train_shifts (train_id, train_number, claimed_by_nickname, claimed_by_role, shift_date)
