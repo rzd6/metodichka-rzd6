@@ -727,30 +727,7 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed, setIsColl
                   variant="outline"
                   className={`flex-1 relative bg-transparent ${getTextColor()} hover:${getTextColor()} border-white/20 hover:border-white/40 h-9 px-2`}
                   onClick={handleOpenNotifications}
-                  title="Уведомления"
-                >
-                  <Bell className="h-4 w-4" />
-                  {unreadCount > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center px-0.5 leading-none">
-                      {unreadCount > 99 ? "99+" : unreadCount}
-                    </span>
-                  )}
-                </Button>
-                <Button
-                  variant="outline"
-                  className={`flex-1 bg-transparent ${getTextColor()} hover:${getTextColor()} border-white/20 hover:border-white/40 h-9 px-2`}
-                  onClick={() => setShowSettings(true)}
-                  title="Настройки"
-                >
-                  <Settings className="h-4 w-4" />
-                </Button>
-              </div>
-            ) : (
-              <>
-                <Button
-                  variant="outline"
-                  className={`w-10 h-10 mx-auto p-0 relative flex items-center justify-center bg-transparent ${getTextColor()} hover:${getTextColor()} border-white/20 hover:border-white/40`}
-                  onClick={handleOpenNotifications}
+                  data-tour="notifications"
                   title="Уведомления"
                 >
                   <Bell className="h-4 w-4" />
@@ -764,12 +741,13 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed, setIsColl
                   variant="outline"
                   className={`w-10 h-10 mx-auto p-0 flex items-center justify-center bg-transparent ${getTextColor()} hover:${getTextColor()} border-white/20 hover:border-white/40`}
                   onClick={() => setShowSettings(true)}
+                  data-tour="settings"
                   title="Настройки"
                 >
                   <Settings className="h-4 w-4" />
                 </Button>
-              </>
-            )}
+              </div>
+            ) : null}
 
             {!isCollapsed ? (
               <div className="flex gap-2">

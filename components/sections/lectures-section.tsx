@@ -10,7 +10,7 @@ import { clipboardCopy } from "@/lib/clipboard"
 
 export function LecturesSection() {
   const [copiedIndex, setCopiedIndex] = useState<string | null>(null)
-  const [selectedCategory, setSelectedCategory] = useState<"main" | "additional">("main")
+  const [selectedCategory, setSelectedCategory] = useState<"main" | "additional" | "briefing">("main")
   const [contentOverride, setContentOverride] = useState<any>(null)
   const { theme } = useTheme()
 
@@ -111,8 +111,8 @@ export function LecturesSection() {
     })
   }
 
-  const staticData = selectedCategory === "main" ? contentData.lectures.main : contentData.lectures.additional
-  const overrideData = contentOverride
+  const staticData = selectedCategory === "main" ? contentData.lectures.main : selectedCategory === "additional" ? contentData.lectures.additional : []
+  const overrideData = contentOverride && selectedCategory !== "briefing"
     ? (selectedCategory === "main" ? contentOverride.main : contentOverride.additional)
     : null
   const lectures = overrideData ?? staticData
@@ -152,6 +152,13 @@ export function LecturesSection() {
           Основные лекции
         </button>
         <button
+          onClick={() => setSelectedCategory("briefing")} 
+          className={`px-6 py-3 rounded-xl font-medium transition-all duration-200 border-2 ${selectedCategory === "briefing" ? "text-white shadow-lg" : theme.mode === "dark" ? "bg-[#0f1419]/50 border-white/10 text-white/70 hover:border-white/30" : "bg-white border-gray-200 text-gray-600 hover:border-gray-300"}`}
+          style={selectedCategory === "briefing" ? { backgroundColor: getTieColor(), borderColor: getTieColor() } : {}}
+        >
+          Инструктаж
+        </button>
+        <button
           onClick={() => setSelectedCategory("additional")}
           className={`px-6 py-3 rounded-xl font-medium transition-all duration-200 border-2 ${selectedCategory === "additional"
               ? "text-white shadow-lg"
@@ -168,7 +175,7 @@ export function LecturesSection() {
       </div>
 
       <Accordion type="single" collapsible className="space-y-4">
-        {lectures.map((lecture) => (
+        {lectures.map((lecture: any) => (
           <AccordionItem
             key={lecture.id}
             value={lecture.id}
