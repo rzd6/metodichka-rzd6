@@ -146,7 +146,7 @@ export function SettingsModal({ open, onOpenChange, initialTab }: SettingsModalP
       const res = await fetch("/api/users", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: currentUser.id, password: newPassword }),
+        body: JSON.stringify({ id: currentUser.id, password: newPassword, is_default_password: false }),
       })
       const json = await res.json()
       if (!res.ok || json.error) {
@@ -154,7 +154,7 @@ export function SettingsModal({ open, onOpenChange, initialTab }: SettingsModalP
         return
       }
       // Update localStorage
-      localStorage.setItem("currentUser", JSON.stringify({ ...currentUser, password: newPassword }))
+      localStorage.setItem("currentUser", JSON.stringify({ ...currentUser, password: newPassword, isDefaultPassword: false }))
       setPwSuccess(true)
       setOldPassword("")
       setNewPassword("")

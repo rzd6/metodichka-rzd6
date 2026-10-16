@@ -17,6 +17,8 @@ import {
   MapPin,
   ChevronDown,
   ChevronUp,
+  Copy,
+  Check,
 } from "lucide-react"
 import { useTheme } from "@/contexts/theme-context"
 import { useState, useEffect, useRef } from "react"
@@ -1631,6 +1633,22 @@ function CommandsSection({ getTieColor, theme, userRole }: any) {
 }
 
 function IdCardSection({ getTieColor, theme }: any) {
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
+  const binds = [
+    'bind "кнопка1" say Здравствуйте, *Должность*, *Ф.И.О*.',
+    'bind "кнопка1" do Удостоверение в нагрудном кармане.',
+    'bind "кнопка2" me достал удостоверение из нагрудного кармана и развернул его',
+    'bind "кнопка2" chatbox ud',
+    'bind "кнопка3" me закрыл удостоверение и убрал его в карман',
+    'bind "кнопка3" do Удостоверение в нагрудном кармане.',
+  ]
+
+  const copyBind = async (value: string, index: number) => {
+    await navigator.clipboard.writeText(value)
+    setCopiedIndex(index)
+    window.setTimeout(() => setCopiedIndex(null), 1400)
+  }
+
   return (
     <div id="id-card" className="space-y-6 scroll-mt-6">
       {" "}
@@ -1652,12 +1670,12 @@ function IdCardSection({ getTieColor, theme }: any) {
           <div
             className={`p-4 rounded-xl border font-mono text-sm ${theme.mode === "dark" ? "bg-white/5 border-white/10 text-white/70" : "bg-gray-50 border-gray-200 text-gray-600"}`}
           >
-            <p>bind "кнопка1" say Здравствуйте, *Должность*, *Ф.И.О*.</p>
-            <p>bind "кнопка1" do Удостоверение в нагрудном кармане.</p>
-            <p>bind "кнопка2" me достал удостоверение из нагрудного кармана и развернул его</p>
-            <p>bind "кнопка2" chatbox ud</p>
-            <p>bind "кнопка3" me закрыл удостоверение и убрал его в карман</p>
-            <p>bind "кнопка3" do Удостоверение в нагрудном кармане.</p>
+            {binds.map((bind, index) => (
+              <button key={bind} type="button" onClick={() => copyBind(bind, index)} className="group flex w-full items-center justify-between gap-3 rounded-lg px-2 py-1 text-left hover:bg-white/10">
+                <span>{bind}</span>
+                {copiedIndex === index ? <Check className="h-4 w-4 shrink-0 text-emerald-400" /> : <Copy className="h-4 w-4 shrink-0 opacity-50 transition-opacity group-hover:opacity-100" />}
+              </button>
+            ))}
           </div>
         </CardContent>
       </Card>
