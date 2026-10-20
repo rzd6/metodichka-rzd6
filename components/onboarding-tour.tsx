@@ -89,7 +89,12 @@ export function OnboardingTour({ user }: OnboardingTourProps) {
 
   if (!open || !current) return null
   const finish = () => { localStorage.setItem(key, "done"); setOpen(false) }
-  const next = () => step >= steps.length - 1 ? finish() : setStep((value) => value + 1)
+  const next = () => {
+    if (current.title === "Уведомления от руководства") window.dispatchEvent(new Event("closeNotificationsForOnboarding"))
+    step >= steps.length - 1 ? finish() : setStep((value) => value + 1)
+  }
+  const canSkip = step === 0
+  const canAdvance = !current.waitForClick
   const tooltipStyle = targetRect ? {
     top: Math.max(16, Math.min(targetRect.top, window.innerHeight - 250)),
     left: targetRect.right + 24 + 380 <= window.innerWidth ? targetRect.right + 24 : Math.max(16, targetRect.left - 404),
@@ -106,10 +111,10 @@ export function OnboardingTour({ user }: OnboardingTourProps) {
         <div className="pointer-events-none absolute rounded-xl border-2" style={{ top: hole.top, left: hole.left, width: hole.right - hole.left, height: hole.bottom - hole.top, borderColor: "var(--theme-color)" }} />
       </> : <div className="pointer-events-auto absolute inset-0 bg-black/65" />}
       <div className="pointer-events-auto absolute w-[min(380px,calc(100vw-32px))] rounded-2xl border border-white/15 bg-background p-5 text-foreground shadow-2xl" style={tooltipStyle ?? { top: "50%", left: "50%", transform: "translate(-50%, -50%)" }}>
-        <div className="mb-3 flex items-center justify-between"><span className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Методичка · обучение</span><button type="button" onClick={finish} className="rounded-lg px-2 text-xl text-white/55 hover:bg-white/10 hover:text-white" aria-label="Пропустить обучение">×</button></div>
+        <div className="mb-3 flex items-center justify-between"><span className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Методичка · обучение</span>{canSkip && <button type="button" onClick={finish} className="rounded-lg px-2 text-xl text-muted-foreground hover:bg-muted hover:text-foreground" aria-label="Пропустить обучение">×</button>}</div>
         <h2 id="onboarding-title" className="text-xl font-bold">{current.title}</h2>
         <p className="mt-2 text-sm leading-6 text-muted-foreground">{current.text}</p>
-        <div className="mt-5 flex items-center justify-between gap-3"><span className="text-xs text-muted-foreground">Шаг {step + 1} из {steps.length}</span><div className="flex gap-2"><button type="button" onClick={finish} className="rounded-xl border border-white/15 px-3 py-2 text-sm text-white/70 hover:bg-white/10">Пропустить</button>{current.waitForClick ? <span className="rounded-xl px-3 py-2 text-sm font-semibold text-primary-foreground" style={{ backgroundColor: "var(--theme-color)" }}>Нажмите кнопку</span> : <button type="button" onClick={next} className="rounded-xl px-4 py-2 text-sm font-semibold text-primary-foreground" style={{ backgroundColor: "var(--theme-color)" }}>{step === steps.length - 1 ? "Понятно" : "Далее"}</button>}</div></div>
+        <div className="mt-5 flex items-center justify-between gap-3"><span className="text-xs text-muted-foreground">Шаг {step + 1} из {steps.length}</span><div className="flex gap-2">{canSkip && <button type="button" onClick={finish} className="rounded-xl border border-border px-3 py-2 text-sm text-muted-foreground hover:bg-muted">Пропустить обучение</button>}{current.waitForClick ? <span className="rounded-xl px-3 py-2 text-sm font-semibold text-primary-foreground" style={{ backgroundColor: "var(--theme-color)" }}>Нажмите кнопку</span> : <button type="button" onClick={next} className="rounded-xl px-4 py-2 text-sm font-semibold text-primary-foreground" style={{ backgroundColor: "var(--theme-color)" }}>{step === steps.length - 1 ? "Понятно" : "Далее"}</button>}</div></div>
       </div>
     </div>
   )

@@ -569,8 +569,14 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed, setIsColl
     return theme.mode === "dark" ? "text-white" : "text-black"
   }
 
+  useEffect(() => {
+    const closeForOnboarding = () => setShowNotifications(false)
+    window.addEventListener("closeNotificationsForOnboarding", closeForOnboarding)
+    return () => window.removeEventListener("closeNotificationsForOnboarding", closeForOnboarding)
+  }, [])
+
   const handleOpenNotifications = async () => {
-    setShowNotifications(true)
+  setShowNotifications(true)
     setUnreadCount(0)
     // Persist which articles are read so count stays 0 after page reload
     try {
