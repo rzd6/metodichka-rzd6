@@ -80,13 +80,15 @@ export function OnboardingTour({ user }: OnboardingTourProps) {
     update()
     window.addEventListener("resize", update)
     window.addEventListener("scroll", update, true)
-    const target = current.target ? document.querySelector(current.target) : null
-    const advance = () => setStep((value) => value + 1)
-    if (target && current.waitForClick) target.addEventListener("click", advance, { once: true })
+    const advance = (event: Event) => {
+      const clicked = event.target as Element | null
+      if (clicked?.closest(selector)) setStep((value) => value + 1)
+    }
+    if (current.waitForClick) document.addEventListener("click", advance, true)
     return () => {
       window.removeEventListener("resize", update)
       window.removeEventListener("scroll", update, true)
-      target?.removeEventListener("click", advance)
+      if (current.waitForClick) document.removeEventListener("click", advance, true)
     }
   }, [open, current])
 
@@ -106,15 +108,15 @@ export function OnboardingTour({ user }: OnboardingTourProps) {
   const hole = targetRect ? { top: targetRect.top - 8, left: targetRect.left - 8, right: targetRect.right + 8, bottom: targetRect.bottom + 8 } : null
 
   return (
-    <div className="pointer-events-none fixed inset-0 z-[110]" role="dialog" aria-modal="true" aria-labelledby="onboarding-title">
+    <div className="pointer-events-none fixed inset-0 z-[40]" role="dialog" aria-modal="true" aria-labelledby="onboarding-title">
       {hole ? <>
-        <div className="pointer-events-auto absolute inset-x-0 top-0 bg-black/65" style={{ height: hole.top }} />
-        <div className="pointer-events-auto absolute bottom-0 left-0 bg-black/65" style={{ top: hole.bottom, right: 0 }} />
-        <div className="pointer-events-auto absolute left-0 bg-black/65" style={{ top: hole.top, width: hole.left, height: hole.bottom - hole.top }} />
-        <div className="pointer-events-auto absolute right-0 bg-black/65" style={{ top: hole.top, left: hole.right, height: hole.bottom - hole.top }} />
+        <div className="pointer-events-none absolute inset-x-0 top-0 bg-black/65" style={{ height: hole.top }} />
+        <div className="pointer-events-none absolute bottom-0 left-0 bg-black/65" style={{ top: hole.bottom, right: 0 }} />
+        <div className="pointer-events-none absolute left-0 bg-black/65" style={{ top: hole.top, width: hole.left, height: hole.bottom - hole.top }} />
+        <div className="pointer-events-none absolute right-0 bg-black/65" style={{ top: hole.top, left: hole.right, height: hole.bottom - hole.top }} />
         <div className="pointer-events-none absolute rounded-xl border-2" style={{ top: hole.top, left: hole.left, width: hole.right - hole.left, height: hole.bottom - hole.top, borderColor: "var(--theme-color)" }} />
-      </> : <div className="pointer-events-auto absolute inset-0 bg-black/65" />}
-      <div className="pointer-events-auto absolute w-[min(380px,calc(100vw-32px))] rounded-2xl border border-white/15 bg-background p-5 text-foreground shadow-2xl" style={tooltipStyle ?? { top: "50%", left: "50%", transform: "translate(-50%, -50%)" }}>
+      </> : <div className="pointer-events-none absolute inset-0 bg-black/65" />}
+      <div className="pointer-events-auto absolute z-[110] w-[min(380px,calc(100vw-32px))] rounded-2xl border border-white/15 bg-background p-5 text-foreground shadow-2xl" style={tooltipStyle ?? { top: "50%", left: "50%", transform: "translate(-50%, -50%)" }}>
         <div className="mb-3 flex items-center justify-between"><span className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Методичка · обучение</span>{canSkip && <button type="button" onClick={finish} className="rounded-lg px-2 text-xl text-muted-foreground hover:bg-muted hover:text-foreground" aria-label="Пропустить обучение">×</button>}</div>
         <h2 id="onboarding-title" className="text-xl font-bold">{current.title}</h2>
         <p className="mt-2 text-sm leading-6 text-muted-foreground">{current.text}</p>
