@@ -571,8 +571,13 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed, setIsColl
 
   useEffect(() => {
     const closeForOnboarding = () => setShowNotifications(false)
+    const closeSettingsForOnboarding = () => setShowSettings(false)
     window.addEventListener("closeNotificationsForOnboarding", closeForOnboarding)
-    return () => window.removeEventListener("closeNotificationsForOnboarding", closeForOnboarding)
+    window.addEventListener("closeSettingsForOnboarding", closeSettingsForOnboarding)
+    return () => {
+      window.removeEventListener("closeNotificationsForOnboarding", closeForOnboarding)
+      window.removeEventListener("closeSettingsForOnboarding", closeSettingsForOnboarding)
+    }
   }, [])
 
   const handleOpenNotifications = async () => {

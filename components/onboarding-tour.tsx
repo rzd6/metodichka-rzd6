@@ -12,9 +12,10 @@ type TourStep = { target?: string; title: string; text: string; waitForClick?: b
 const BASE_STEPS: TourStep[] = [
   { target: '[data-tour="notifications"]', title: "Кнопка уведомлений", text: "Найдите внизу меню кнопку с колокольчиком и нажмите её. Откроется список уведомлений.", waitForClick: true },
   { title: "Уведомления от руководства", text: "Здесь появляются сообщения от старшего и руководящего состава. Прочитайте их, затем закройте окно крестиком, чтобы вернуться в методичку." },
-  { target: '[data-tour="settings"]', title: "Откройте настройки", text: "Теперь нажмите кнопку с шестерёнкой внизу меню. Откроется окно настроек.", waitForClick: true },
-  { title: "Внешний вид", text: "Во вкладке «Внешний вид» можно загрузить свой фон, выбрать готовый фон, сменить тему и цвет интерфейса." },
-  { title: "Профиль и доклады", text: "Во вкладке «Аккаунт» можно сменить пол для докладов и пароль. После изменения пароля обязательно сохраните форму." },
+  { target: '[data-tour="settings"]', title: "Откройте настройки", text: "Нажмите кнопку с шестерёнкой внизу меню. После этого покажу обе вкладки настроек по очереди.", waitForClick: true },
+  { target: '[data-tour="settings-appearance"]', title: "Вкладка «Оформление»", text: "Сначала нажмите вкладку «Оформление». Здесь находятся фон, готовые фоны, тема и цвет интерфейса.", waitForClick: true },
+  { target: '[data-tour="settings-account"]', title: "Вкладка «Аккаунт и система»", text: "Теперь нажмите вкладку «Аккаунт и система». Здесь можно сменить пол для докладов и пароль.", waitForClick: true },
+  { title: "Настройки изучены", text: "Когда прочитаете этот шаг, нажмите «Далее». Окно настроек закроется, и обучение продолжится по разделам методички." },
   { title: "Разделы методички", text: "В левом меню откройте нужный раздел: «Информация», «Лекции», «Доклады» или «Составитель докладов». Набор разделов зависит от вашей роли." },
 ]
 
@@ -73,6 +74,8 @@ export function OnboardingTour({ user }: OnboardingTourProps) {
   useEffect(() => {
     if (!open || !current?.target) { setTargetRect(null); return }
     const selector = current.target
+    const targetElement = selector ? document.querySelector<HTMLElement>(selector) : null
+    targetElement?.scrollIntoView({ block: "nearest", inline: "nearest" })
     const update = () => setTargetRect(selector ? document.querySelector(selector)?.getBoundingClientRect() ?? null : null)
     update()
     window.addEventListener("resize", update)
@@ -91,6 +94,7 @@ export function OnboardingTour({ user }: OnboardingTourProps) {
   const finish = () => { localStorage.setItem(key, "done"); setOpen(false) }
   const next = () => {
     if (current.title === "Уведомления от руководства") window.dispatchEvent(new Event("closeNotificationsForOnboarding"))
+    if (current.title === "Настройки изучены") window.dispatchEvent(new Event("closeSettingsForOnboarding"))
     step >= steps.length - 1 ? finish() : setStep((value) => value + 1)
   }
   const canSkip = step === 0
@@ -114,7 +118,7 @@ export function OnboardingTour({ user }: OnboardingTourProps) {
         <div className="mb-3 flex items-center justify-between"><span className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Методичка · обучение</span>{canSkip && <button type="button" onClick={finish} className="rounded-lg px-2 text-xl text-muted-foreground hover:bg-muted hover:text-foreground" aria-label="Пропустить обучение">×</button>}</div>
         <h2 id="onboarding-title" className="text-xl font-bold">{current.title}</h2>
         <p className="mt-2 text-sm leading-6 text-muted-foreground">{current.text}</p>
-        <div className="mt-5 flex items-center justify-between gap-3"><span className="text-xs text-muted-foreground">Шаг {step + 1} из {steps.length}</span><div className="flex gap-2">{canSkip && <button type="button" onClick={finish} className="rounded-xl border border-border px-3 py-2 text-sm text-muted-foreground hover:bg-muted">Пропустить обучение</button>}{current.waitForClick ? <span className="rounded-xl px-3 py-2 text-sm font-semibold text-primary-foreground" style={{ backgroundColor: "var(--theme-color)" }}>Нажмите кнопку</span> : <button type="button" onClick={next} className="rounded-xl px-4 py-2 text-sm font-semibold text-primary-foreground" style={{ backgroundColor: "var(--theme-color)" }}>{step === steps.length - 1 ? "Понятно" : "Далее"}</button>}</div></div>
+        <div className="mt-5 flex items-center justify-between gap-3"><span className="text-xs text-muted-foreground">Шаг {step + 1} из {steps.length}</span><div className="flex gap-2">{canSkip && <button type="button" onClick={finish} className="rounded-xl border border-border px-3 py-2 text-sm text-muted-foreground hover:bg-muted">Пропустить обучение</button>}{current.waitForClick ? <span className="rounded-xl px-3 py-2 text-sm font-semibold text-primary-foreground" style={{ backgroundColor: "var(--theme-color, hsl(var(--primary)))", color: "white" }}>Нажмите кнопку</span> : <button type="button" onClick={next} className="rounded-xl px-4 py-2 text-sm font-semibold text-primary-foreground" style={{ backgroundColor: "var(--theme-color, hsl(var(--primary)))", color: "white" }}>{step === steps.length - 1 ? "Понятно" : "Далее"}</button>}</div></div>
       </div>
     </div>
   )

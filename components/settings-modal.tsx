@@ -264,11 +264,11 @@ export function SettingsModal({ open, onOpenChange, initialTab, onRestartOnboard
 
         <Tabs value={settingsTab} onValueChange={(v) => setSettingsTab(v as "appearance" | "account")} className="flex-1 flex flex-col min-h-0">
           <TabsList className={`grid w-full grid-cols-2 mb-4 ${theme.mode === "dark" ? "bg-white/10" : "bg-gray-100"}`}>
-            <TabsTrigger value="appearance" className="gap-2">
+            <TabsTrigger value="appearance" data-tour="settings-appearance" className="gap-2">
               <Palette className="w-4 h-4" />
               Оформление
             </TabsTrigger>
-            <TabsTrigger value="account" className="gap-2">
+            <TabsTrigger value="account" data-tour="settings-account" className="gap-2">
               <UserCog className="w-4 h-4" />
               Аккаунт и система
             </TabsTrigger>
