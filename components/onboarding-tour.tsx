@@ -91,14 +91,20 @@ export function OnboardingTour({ user }: OnboardingTourProps) {
   const finish = () => { localStorage.setItem(key, "done"); setOpen(false) }
   const next = () => step >= steps.length - 1 ? finish() : setStep((value) => value + 1)
   const tooltipStyle = targetRect ? {
-    top: targetRect.top > 320 ? Math.max(16, targetRect.top - 220) : Math.min(targetRect.bottom + 16, window.innerHeight - 220),
-    left: Math.max(16, Math.min(targetRect.left, window.innerWidth - 400)),
+    top: Math.max(16, Math.min(targetRect.top, window.innerHeight - 250)),
+    left: targetRect.right + 24 + 380 <= window.innerWidth ? targetRect.right + 24 : Math.max(16, targetRect.left - 404),
   } : undefined
+  const hole = targetRect ? { top: targetRect.top - 8, left: targetRect.left - 8, right: targetRect.right + 8, bottom: targetRect.bottom + 8 } : null
 
   return (
-    <div className="fixed inset-0 z-[110]" role="dialog" aria-modal="true" aria-labelledby="onboarding-title">
-      <div className="pointer-events-none absolute inset-0 bg-black/65" />
-      {targetRect && <div className="pointer-events-none absolute rounded-xl border-2 shadow-[0_0_0_9999px_rgba(0,0,0,0.65)]" style={{ top: targetRect.top - 6, left: targetRect.left - 6, width: targetRect.width + 12, height: targetRect.height + 12, borderColor: "var(--theme-color, #d89b2b)" }} />}
+    <div className="pointer-events-none fixed inset-0 z-[110]" role="dialog" aria-modal="true" aria-labelledby="onboarding-title">
+      {hole ? <>
+        <div className="pointer-events-auto absolute inset-x-0 top-0 bg-black/65" style={{ height: hole.top }} />
+        <div className="pointer-events-auto absolute bottom-0 left-0 bg-black/65" style={{ top: hole.bottom, right: 0 }} />
+        <div className="pointer-events-auto absolute left-0 bg-black/65" style={{ top: hole.top, width: hole.left, height: hole.bottom - hole.top }} />
+        <div className="pointer-events-auto absolute right-0 bg-black/65" style={{ top: hole.top, left: hole.right, height: hole.bottom - hole.top }} />
+        <div className="pointer-events-none absolute rounded-xl border-2" style={{ top: hole.top, left: hole.left, width: hole.right - hole.left, height: hole.bottom - hole.top, borderColor: "var(--theme-color)" }} />
+      </> : <div className="pointer-events-auto absolute inset-0 bg-black/65" />}
       <div className="pointer-events-auto absolute w-[min(380px,calc(100vw-32px))] rounded-2xl border border-white/15 bg-background p-5 text-foreground shadow-2xl" style={tooltipStyle ?? { top: "50%", left: "50%", transform: "translate(-50%, -50%)" }}>
         <div className="mb-3 flex items-center justify-between"><span className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Методичка · обучение</span><button type="button" onClick={finish} className="rounded-lg px-2 text-xl text-white/55 hover:bg-white/10 hover:text-white" aria-label="Пропустить обучение">×</button></div>
         <h2 id="onboarding-title" className="text-xl font-bold">{current.title}</h2>
