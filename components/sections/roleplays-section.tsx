@@ -64,7 +64,7 @@ export function RoleplaysSection() {
     const isCopied = copiedIndex === id
     const text = applyGenderToText(line, gender)
     return (
-      <button key={id} onClick={() => copyToClipboard(text, id)} className={`group mb-3 w-full rounded-xl border-2 p-4 text-left transition-all ${isCopied ? (isDark ? "border-green-500/60 bg-green-900/40" : "border-green-400 bg-green-50") : (isDark ? "border-white/10 bg-[#0f1419]/80 hover:border-white/30" : "border-gray-200 bg-white hover:border-gray-300")}`} style={{ borderLeftWidth: 4, borderLeftColor: isCopied ? "#22c55e" : tieColor }}>
+      <button key={id} data-tour-action="copy-roleplay" onClick={() => copyToClipboard(text, id)} className={`group mb-3 w-full rounded-xl border-2 p-4 text-left transition-all ${isCopied ? (isDark ? "border-green-500/60 bg-green-900/40" : "border-green-400 bg-green-50") : (isDark ? "border-white/10 bg-[#0f1419]/80 hover:border-white/30" : "border-gray-200 bg-white hover:border-gray-300")}`} style={{ borderLeftWidth: 4, borderLeftColor: isCopied ? "#22c55e" : tieColor }}>
         <div className="flex items-start justify-between gap-4">
           <p className={`flex-1 text-sm ${isCopied ? "text-green-500" : isDark ? "text-white/90" : "text-gray-900"}`}>{text}</p>
           {isCopied ? <Check className="size-4 text-green-500" /> : <Copy className="size-4" style={{ color: tieColor }} />}

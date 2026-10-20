@@ -32,9 +32,10 @@ interface SettingsModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   initialTab?: "appearance" | "account"
+  onRestartOnboarding?: () => void
 }
 
-export function SettingsModal({ open, onOpenChange, initialTab }: SettingsModalProps) {
+export function SettingsModal({ open, onOpenChange, initialTab, onRestartOnboarding }: SettingsModalProps) {
   const { theme, updateTheme } = useTheme()
   const [techMode, setTechMode] = useState(false)
   const [techModeLoading, setTechModeLoading] = useState(false)
@@ -146,7 +147,7 @@ export function SettingsModal({ open, onOpenChange, initialTab }: SettingsModalP
       const res = await fetch("/api/users", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: currentUser.id, password: newPassword }),
+        body: JSON.stringify({ id: currentUser.id, password: newPassword, is_default_password: false }),
       })
       const json = await res.json()
       if (!res.ok || json.error) {
@@ -154,7 +155,7 @@ export function SettingsModal({ open, onOpenChange, initialTab }: SettingsModalP
         return
       }
       // Update localStorage
-      localStorage.setItem("currentUser", JSON.stringify({ ...currentUser, password: newPassword }))
+      localStorage.setItem("currentUser", JSON.stringify({ ...currentUser, password: newPassword, isDefaultPassword: false }))
       setPwSuccess(true)
       setOldPassword("")
       setNewPassword("")
@@ -254,15 +255,21 @@ export function SettingsModal({ open, onOpenChange, initialTab }: SettingsModalP
             <Settings className="w-5 h-5" />
             Настройки
           </DialogTitle>
+          {/* Кнопка повторного обучения временно скрыта вместе с запуском тура. */}
+          {false && onRestartOnboarding && (
+            <Button type="button" variant="outline" size="sm" onClick={onRestartOnboarding} className="mt-3 w-fit">
+              Пройти обучение заново
+            </Button>
+          )}
         </DialogHeader>
 
         <Tabs value={settingsTab} onValueChange={(v) => setSettingsTab(v as "appearance" | "account")} className="flex-1 flex flex-col min-h-0">
           <TabsList className={`grid w-full grid-cols-2 mb-4 ${theme.mode === "dark" ? "bg-white/10" : "bg-gray-100"}`}>
-            <TabsTrigger value="appearance" className="gap-2">
+            <TabsTrigger value="appearance" data-tour="settings-appearance" className="gap-2">
               <Palette className="w-4 h-4" />
               Оформление
             </TabsTrigger>
-            <TabsTrigger value="account" className="gap-2">
+            <TabsTrigger value="account" data-tour="settings-account" className="gap-2">
               <UserCog className="w-4 h-4" />
               Аккаунт и система
             </TabsTrigger>

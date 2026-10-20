@@ -43,7 +43,8 @@ export function TrainingSection() {
       return (
         <button
           key={index}
-          onClick={() => copyToClipboard(line, lineId)}
+          data-tour-action="copy-training"
+              onClick={() => copyToClipboard(line, lineId)}
           className={`w-full p-4 rounded-xl border-2 text-left transition-all duration-200 group mb-3 ${isCopied
               ? theme.mode === "dark"
                 ? "bg-gradient-to-r from-green-900/40 to-green-900/20 border-green-500/60"

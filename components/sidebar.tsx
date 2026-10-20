@@ -569,8 +569,19 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed, setIsColl
     return theme.mode === "dark" ? "text-white" : "text-black"
   }
 
+  useEffect(() => {
+    const closeForOnboarding = () => setShowNotifications(false)
+    const closeSettingsForOnboarding = () => setShowSettings(false)
+    window.addEventListener("closeNotificationsForOnboarding", closeForOnboarding)
+    window.addEventListener("closeSettingsForOnboarding", closeSettingsForOnboarding)
+    return () => {
+      window.removeEventListener("closeNotificationsForOnboarding", closeForOnboarding)
+      window.removeEventListener("closeSettingsForOnboarding", closeSettingsForOnboarding)
+    }
+  }, [])
+
   const handleOpenNotifications = async () => {
-    setShowNotifications(true)
+  setShowNotifications(true)
     setUnreadCount(0)
     // Persist which articles are read so count stays 0 after page reload
     try {
@@ -694,6 +705,8 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed, setIsColl
                       : { backgroundColor: "transparent" }
                   }
                   onClick={() => onSectionChange(section.id)}
+                  data-tour-section={displayLabel}
+                  data-tour={section.id === "report-compiler" ? "report-compilers" : section.id === "admin" ? "admin" : undefined}
                   title={isCollapsed ? displayLabel : undefined}
                 >
                   <span className="flex items-center justify-center w-5 h-5 flex-shrink-0">
@@ -721,12 +734,12 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed, setIsColl
           )}
 
           <div className={`mt-auto pt-4 mb-2 ${isCollapsed ? "space-y-2" : "space-y-2"}`}>
-            {!isCollapsed ? (
-              <div className="flex gap-2">
+            <div className={`flex gap-2 ${isCollapsed ? "flex-col" : ""}`}>
                 <Button
                   variant="outline"
-                  className={`flex-1 relative bg-transparent ${getTextColor()} hover:${getTextColor()} border-white/20 hover:border-white/40 h-9 px-2`}
+                  className={`flex-1 bg-transparent ${getTextColor()} hover:${getTextColor()} border-white/20 hover:border-white/40 h-9 px-2`}
                   onClick={handleOpenNotifications}
+                  data-tour="notifications"
                   title="Уведомления"
                 >
                   <Bell className="h-4 w-4" />
@@ -740,36 +753,12 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed, setIsColl
                   variant="outline"
                   className={`flex-1 bg-transparent ${getTextColor()} hover:${getTextColor()} border-white/20 hover:border-white/40 h-9 px-2`}
                   onClick={() => setShowSettings(true)}
+                  data-tour="settings"
                   title="Настройки"
                 >
                   <Settings className="h-4 w-4" />
                 </Button>
-              </div>
-            ) : (
-              <>
-                <Button
-                  variant="outline"
-                  className={`w-10 h-10 mx-auto p-0 relative flex items-center justify-center bg-transparent ${getTextColor()} hover:${getTextColor()} border-white/20 hover:border-white/40`}
-                  onClick={handleOpenNotifications}
-                  title="Уведомления"
-                >
-                  <Bell className="h-4 w-4" />
-                  {unreadCount > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center px-0.5 leading-none">
-                      {unreadCount > 99 ? "99+" : unreadCount}
-                    </span>
-                  )}
-                </Button>
-                <Button
-                  variant="outline"
-                  className={`w-10 h-10 mx-auto p-0 flex items-center justify-center bg-transparent ${getTextColor()} hover:${getTextColor()} border-white/20 hover:border-white/40`}
-                  onClick={() => setShowSettings(true)}
-                  title="Настройки"
-                >
-                  <Settings className="h-4 w-4" />
-                </Button>
-              </>
-            )}
+            </div>
 
             {!isCollapsed ? (
               <div className="flex gap-2">
@@ -794,7 +783,7 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed, setIsColl
               <>
                 <Button
                   variant="outline"
-                  className={`w-10 h-10 mx-auto p-0 flex items-center justify-center bg-transparent ${getTextColor()} hover:${getTextColor()} border-white/20 hover:border-white/40`}
+                  className={`flex-1 bg-transparent ${getTextColor()} hover:${getTextColor()} border-white/20 hover:border-white/40 h-9 px-2`}
                   onClick={handleLogout}
                   title="Выйти"
                 >
@@ -802,7 +791,7 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed, setIsColl
                 </Button>
                 <Button
                   variant="outline"
-                  className={`w-10 h-10 mx-auto p-0 flex items-center justify-center bg-transparent ${getTextColor()} hover:${getTextColor()} border-white/20 hover:border-white/40`}
+                  className={`flex-1 bg-transparent ${getTextColor()} hover:${getTextColor()} border-white/20 hover:border-white/40 h-9 px-2`}
                   onClick={() => setIsCollapsed(!isCollapsed)}
                   title="Развернуть"
                 >
@@ -814,7 +803,7 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed, setIsColl
         </div>
       </aside>
 
-      <SettingsModal open={showSettings} onOpenChange={setShowSettings} initialTab={settingsInitialTab} />
+      <SettingsModal open={showSettings} onOpenChange={setShowSettings} initialTab={settingsInitialTab} onRestartOnboarding={() => { setShowSettings(false); window.dispatchEvent(new Event("restartOnboarding")) }} />
       <NotificationsModal open={showNotifications} onOpenChange={setShowNotifications} userRole={user.role} secondaryRole={user.secondaryRole} />
     </>
   )

@@ -10,6 +10,7 @@ import type { UserRole } from "@/data/users"
 import { getAllUsers } from "@/data/users"
 import { getThemeColor } from "@/lib/theme-utils"
 import { proxyImageUrl } from "@/lib/image-proxy"
+import { OnboardingTour } from "@/components/onboarding-tour"
 
 interface LocalUser {
   id: string
@@ -315,6 +316,9 @@ function MainContentInner() {
             </div>
           )
         })()}
+        {/* Временное отключение обучения: код тура сохранён для последующей доработки.
+        <OnboardingTour user={{ id: user.id, role: user.role, nickname: user.nickname }} />
+        */}
       </div>
     </TechModeGuard>
   )
