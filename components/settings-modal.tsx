@@ -255,7 +255,8 @@ export function SettingsModal({ open, onOpenChange, initialTab, onRestartOnboard
             <Settings className="w-5 h-5" />
             Настройки
           </DialogTitle>
-          {onRestartOnboarding && (
+          {/* Кнопка повторного обучения временно скрыта вместе с запуском тура. */}
+          {false && onRestartOnboarding && (
             <Button type="button" variant="outline" size="sm" onClick={onRestartOnboarding} className="mt-3 w-fit">
               Пройти обучение заново
             </Button>

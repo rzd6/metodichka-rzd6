@@ -316,7 +316,9 @@ function MainContentInner() {
             </div>
           )
         })()}
+        {/* Временное отключение обучения: код тура сохранён для последующей доработки.
         <OnboardingTour user={{ id: user.id, role: user.role, nickname: user.nickname }} />
+        */}
       </div>
     </TechModeGuard>
   )
