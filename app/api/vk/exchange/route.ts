@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "missing_params", description: "VK не передал code или device_id" }, { status: 400 })
     }
 
-    const clientId = process.env.VK_APP_ID || "54678517"
+    const clientId = process.env.VK_APP_ID || "54864742"
     const requestOrigin = new URL(request.url).origin
     const configuredAppUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "")
     const configuredRedirectUri =

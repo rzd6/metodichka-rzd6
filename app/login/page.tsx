@@ -15,7 +15,7 @@ import Image from "next/image"
 import { getAvatarFilterFromColor } from "@/lib/color-utils"
 
 // VK ID разрешает только redirect URL, добавленные в настройках приложения.
-const VK_APP_ID = Number(process.env.NEXT_PUBLIC_VK_APP_ID || 54678517)
+const VK_APP_ID = Number(process.env.NEXT_PUBLIC_VK_APP_ID || 54864742)
 const VK_REDIRECT_URI =
   process.env.NEXT_PUBLIC_VK_REDIRECT_URI || "https://metodichka-rzd6.vercel.app/login"
 
