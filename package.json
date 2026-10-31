@@ -78,6 +78,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vinext/cloudflare": "^1.3.0",
+    "@vitejs/plugin-rsc": "^0.5.38",
     "postcss": "^8.5",
     "tailwindcss": "^4.2.0",
     "tw-animate-css": "1.3.3",
