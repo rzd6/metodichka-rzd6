@@ -2,7 +2,7 @@ import { bindings, defineConfig, defineWorker } from "cf/config";
 
 export default defineConfig({
   worker: defineWorker({
-    name: "my-project",
+    name: "metodichka-rzd6",
     entrypoint: "vinext/server/fetch-handler",
     compatibilityDate: "2026-10-31",
     compatibilityFlags: ["nodejs_compat"],
