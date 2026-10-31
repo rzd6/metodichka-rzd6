@@ -14,7 +14,7 @@ export default defineConfig({
     env: {
       ASSETS: bindings.assets(),
       IMAGES: bindings.images(),
-      VINEXT_KV_CACHE: bindings.kv(),
+      VINEXT_KV_CACHE: bindings.kv({ id: "2e137f8c4c4c48d084226f284bdab91a" }),
 
       // Public / non-sensitive
       NEXT_PUBLIC_APP_URL: bindings.text("https://metodichka-rzd6.egorsofronov120452.workers.dev"),
