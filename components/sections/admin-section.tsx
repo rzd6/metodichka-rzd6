@@ -558,15 +558,7 @@ export function AdminSection() {
 
   const getRoleIcon = (role: User["role"], size: "sm" | "md" = "md") => {
     const iconSize = size === "sm" ? "w-4 h-4" : "w-5 h-5"
-  const colors: Record<UserRole, string> = {
-    "Руководство": "#fbbf24",
-    "Заместитель": "#a78bfa",
-    "Старший Состав": "#60a5fa",
-    "ЦдУД": "#34d399",
-    "ПТО": "#fb923c",
-    "Тех. Администратор": "#f472b6",
-  }
-  const color = colors[role] ?? "#94a3b8"
+  const color = "#ffffff"
 
   switch (role) {
       case "Руководство":
@@ -668,7 +660,7 @@ export function AdminSection() {
             </button>
           ))}
         </div>
-        <div className="relative flex items-start gap-3 pb-3 border-b" style={{ borderColor: getTieColor() + "40" }}>
+        <div className="flex items-start gap-3 pb-3 border-b" style={{ borderColor: getTieColor() + "40" }}>
           <div
             className="p-3 rounded-xl"
             style={{ background: `linear-gradient(135deg, ${getTieColor()}20, ${getTieColor()}10)` }}
@@ -684,7 +676,7 @@ export function AdminSection() {
             </p>
           </div>
           <div className="ml-auto flex shrink-0 items-center gap-2">
-            <div className="absolute left-1/2 top-0 -translate-x-1/2"><BugReportButton sectionLabel="admin" /></div>
+            <BugReportButton sectionLabel="admin" />
           </div>
         </div>
         {currentUser && (
@@ -744,7 +736,7 @@ export function AdminSection() {
       )}
 
       {/* Header */}
-      <div className="relative flex items-start gap-3 pb-3 border-b" style={{ borderColor: getTieColor() + "40" }}>
+      <div className="flex items-start gap-3 pb-3 border-b" style={{ borderColor: getTieColor() + "40" }}>
         <div
           className="p-3 rounded-xl"
           style={{
@@ -797,7 +789,7 @@ export function AdminSection() {
           )}
         </div>
           <div className="ml-auto flex shrink-0 items-center gap-2">
-            <div className="absolute left-1/2 top-0 -translate-x-1/2"><BugReportButton sectionLabel="admin" /></div>
+            <BugReportButton sectionLabel="admin" />
             <Button
 
             variant="outline"

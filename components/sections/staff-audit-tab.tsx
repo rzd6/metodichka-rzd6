@@ -20,7 +20,7 @@ export interface StaffAuditEntry {
 
 const ACTION_META: Record<
   string,
-  { label: string; icon: React.ComponentType<{ className?: string }>; color: string }
+  { label: string; icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>; color: string }
 > = {
   add:              { label: "Добавлен",       icon: UserPlus,  color: "#22c55e" },
   delete:           { label: "Удалён",         icon: Trash2,    color: "#ef4444" },
@@ -183,7 +183,7 @@ export function StaffAuditTab({ tieColor, isDark }: Props) {
                     className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
                     style={{ backgroundColor: meta.color + "20" }}
                   >
-                    <ActionIcon className="w-4 h-4" />
+                    <ActionIcon className="w-4 h-4" style={{ color: meta.color }} />
                   </div>
 
                   <div className="flex-1 min-w-0">
