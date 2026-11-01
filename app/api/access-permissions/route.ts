@@ -1,73 +1,28 @@
 import { NextRequest, NextResponse } from "next/server"
-import { Pool } from "pg"
-import {
-  getDefaultSectionPermissions,
-  type SectionPermissionsMap,
-} from "@/data/access-permissions"
-
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"
+import { getDefaultSectionPermissions, type SectionPermissionsMap } from "@/data/access-permissions"
+import { getSupabaseServer } from "@/lib/supabase-server"
 
 const SETTINGS_KEY = "section_permissions"
 
-let pool: Pool | null = null
-
-function getPool(): Pool {
-  if (!pool) {
-    pool = new Pool({
-      connectionString: process.env.POSTGRES_URL ?? process.env.POSTGRES_URL_NON_POOLING,
-      max: 3,
-    })
-  }
-  return pool
-}
-
-async function ensureTable() {
-  const db = getPool()
-  await db.query(`
-    CREATE TABLE IF NOT EXISTS app_settings (
-      key TEXT PRIMARY KEY,
-      value TEXT NOT NULL,
-      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    )
-  `)
-}
-
 export async function GET() {
   try {
-    await ensureTable()
-    const db = getPool()
-    const res = await db.query("SELECT value FROM app_settings WHERE key = $1", [SETTINGS_KEY])
-    if (!res.rows[0]?.value) {
-      return NextResponse.json({ permissions: getDefaultSectionPermissions() })
-    }
-    const parsed = JSON.parse(res.rows[0].value) as SectionPermissionsMap
+    const { data, error } = await getSupabaseServer().from("app_settings").select("value").eq("key", SETTINGS_KEY).maybeSingle()
+    if (error) throw error
+    if (!data?.value) return NextResponse.json({ permissions: getDefaultSectionPermissions() })
+    const parsed = JSON.parse(data.value) as SectionPermissionsMap
     return NextResponse.json({ permissions: { ...getDefaultSectionPermissions(), ...parsed } })
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error"
-    return NextResponse.json(
-      { permissions: getDefaultSectionPermissions(), error: message },
-      { status: 500 }
-    )
+    return NextResponse.json({ permissions: getDefaultSectionPermissions(), error: message }, { status: 500 })
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
-    await ensureTable()
-    const db = getPool()
-    const body = await req.json()
-    const permissions = body.permissions as SectionPermissionsMap
-    if (!permissions || typeof permissions !== "object") {
-      return NextResponse.json({ error: "permissions required" }, { status: 400 })
-    }
-
-    await db.query(
-      `INSERT INTO app_settings (key, value, updated_at)
-       VALUES ($1, $2, NOW())
-       ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()`,
-      [SETTINGS_KEY, JSON.stringify(permissions)]
-    )
-
+    const permissions = (await req.json()).permissions as SectionPermissionsMap
+    if (!permissions || typeof permissions !== "object") return NextResponse.json({ error: "permissions required" }, { status: 400 })
+    const { error } = await getSupabaseServer().from("app_settings").upsert({ key: SETTINGS_KEY, value: JSON.stringify(permissions), updated_at: new Date().toISOString() }, { onConflict: "key" })
+    if (error) throw error
     return NextResponse.json({ success: true })
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error"

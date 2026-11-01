@@ -1,22 +1,3 @@
 import { NextResponse } from "next/server"
-import { Pool } from "pg"
-
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"
-
-let pool: Pool | null = null
-function getPool(): Pool {
-  if (!pool) pool = new Pool({ connectionString: process.env.POSTGRES_URL_NON_POOLING })
-  return pool
-}
-
-export async function GET() {
-  try {
-    const db = getPool()
-    const res = await db.query(
-      "SELECT * FROM section_audit_log ORDER BY created_at DESC LIMIT 200"
-    )
-    return NextResponse.json({ data: res.rows })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
-  }
-}
+import { getSupabaseServer } from "@/lib/supabase-server"
+export async function GET() { try { const { data, error } = await getSupabaseServer().from("section_audit_log").select("*").order("created_at", { ascending: false }).limit(200); if (error) throw error; return NextResponse.json({ data: data ?? [] }) } catch (err: any) { return NextResponse.json({ error: err.message }, { status: 500 }) } }
