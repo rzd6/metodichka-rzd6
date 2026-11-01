@@ -1,18 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { google } from "googleapis"
 import { GoogleAuth } from "google-auth-library"
-import { Pool } from "pg"
-
-let pool: Pool | null = null
-function getPool(): Pool {
-  if (!pool) {
-    pool = new Pool({
-      connectionString: process.env.POSTGRES_URL ?? process.env.POSTGRES_URL_NON_POOLING,
-      max: 3,
-    })
-  }
-  return pool
-}
+import { getSupabaseServer } from "@/lib/supabase-server"
 
 const SERVICE_ACCOUNT_EMAIL = "rzd6-metodichka@rzd-metodichka.iam.gserviceaccount.com"
 
@@ -79,23 +68,12 @@ export async function POST(req: NextRequest) {
     const { date } = await req.json()
     const shiftDate = date || new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Moscow" })
 
-    const db = getPool()
-
-    // Load all trains
-    const trainRes = await db.query("SELECT * FROM trains ORDER BY train_number ASC")
-    const trains: any[] = trainRes.rows
-
-    // Load shifts for date
-    const shiftRes = await db.query(
-      `SELECT ts.*, t.direction, t.class, t.depart_start, t.arrive_middle,
-              t.depart_middle, t.arrive_end, t.platform_start, t.platform_middle, t.platform_end
-       FROM train_shifts ts
-       JOIN trains t ON t.id = ts.train_id
-       WHERE ts.shift_date = $1
-       ORDER BY ts.train_number ASC`,
-      [shiftDate]
-    )
-    const shifts: any[] = shiftRes.rows
+    const db = getSupabaseServer()
+    const { data: trains, error: trainsError } = await db.from("trains").select("*").order("train_number", { ascending: true })
+    if (trainsError) throw trainsError
+    const { data: shiftRows, error: shiftsError } = await db.from("train_shifts").select("*, trains!inner(direction,class,depart_start,arrive_middle,depart_middle,arrive_end,platform_start,platform_middle,platform_end)").eq("shift_date", shiftDate).order("train_number", { ascending: true })
+    if (shiftsError) throw shiftsError
+    const shifts: any[] = (shiftRows ?? []).map((row: any) => ({ ...row, ...row.trains, trains: undefined }))
 
     const auth = getAuth()
     const sheets = google.sheets({ version: "v4", auth })
@@ -133,9 +111,9 @@ export async function POST(req: NextRequest) {
 
     // Build rows
     // Section 1: Мирный → Приволжск (1/3)
-    const mp = trains.filter((t) => t.direction === "mirny-privolzhsk")
+    const mp = trains.filter((t: any) => t.direction === "mirny-privolzhsk")
     // Section 2: Приволжск → Мирный (2/4)
-    const pm = trains.filter((t) => t.direction === "privolzhsk-mirny")
+    const pm = trains.filter((t: any) => t.direction === "privolzhsk-mirny")
 
     const rows: (string | number)[][] = []
 

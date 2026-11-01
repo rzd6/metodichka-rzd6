@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { google } from "googleapis"
 import { GoogleAuth } from "google-auth-library"
-import { Pool } from "pg"
+import { getSupabaseServer } from "@/lib/supabase-server"
 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"
 
@@ -9,11 +9,7 @@ const SPREADSHEET_ID = "1CnTpA7Xj7T5Tsofw_oq9S9FldU_AnOd_oiGMLPigEEg"
 const DEV_NICKNAME = "v0_dev_rzd"
 const SERVICE_ACCOUNT_EMAIL = "rzd6-metodichka@rzd-metodichka.iam.gserviceaccount.com"
 
-function getPool(): Pool {
-  const connectionString = process.env.POSTGRES_URL_NON_POOLING ?? process.env.POSTGRES_URL
-  if (!connectionString) throw new Error("Не задана переменная POSTGRES_URL_NON_POOLING")
-  return new Pool({ connectionString, max: 3 })
-}
+
 
 function getAuth() {
   let privateKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY
@@ -258,60 +254,26 @@ async function parseEmployeesFromGridData(sheetData: any): Promise<SheetEmployee
 
 // ─── Database helpers ─────────────────────────────────────────────────────────
 
-async function ensureColumns(db: Pool): Promise<void> {
-  await db.query(`
-    ALTER TABLE users ADD COLUMN IF NOT EXISTS position_title TEXT DEFAULT NULL;
-    ALTER TABLE users ADD COLUMN IF NOT EXISTS is_default_password BOOLEAN DEFAULT false;
-    ALTER TABLE users ADD COLUMN IF NOT EXISTS absent_since TIMESTAMPTZ DEFAULT NULL;
-    ALTER TABLE users ADD COLUMN IF NOT EXISTS medical_card TEXT DEFAULT NULL;
-  `)
+async function ensureColumns(): Promise<void> {
+  // Schema migrations are managed by Supabase; Workers cannot execute PostgreSQL DDL over TCP.
 }
 
 // ─── Staff audit logging (records changes made by the Google Sheets sync) ────
 
 const SYNC_ACTOR = { id: "google-sheets-sync", nickname: "Google Таблица", role: "Синхронизация" }
 
-async function ensureStaffAuditTable(db: Pool): Promise<void> {
-  await db.query(`
-    CREATE TABLE IF NOT EXISTS staff_audit_log (
-      id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      action      TEXT NOT NULL,
-      actor_id    TEXT NOT NULL,
-      actor_nickname TEXT NOT NULL,
-      actor_role  TEXT NOT NULL,
-      target_id   TEXT,
-      target_nickname TEXT,
-      old_role    TEXT,
-      new_role    TEXT,
-      created_at  TIMESTAMPTZ DEFAULT NOW()
-    );
-    CREATE INDEX IF NOT EXISTS idx_staff_audit_created ON staff_audit_log(created_at DESC);
-  `)
-}
+async function ensureStaffAuditTable(): Promise<void> {}
 
 async function logSyncAction(
-  db: Pool,
+  db: any,
   action: "add" | "delete" | "role_change",
   target: { id: string; nickname: string } | null,
   oldRole: string | null,
   newRole: string | null
 ): Promise<void> {
   try {
-    await db.query(
-      `INSERT INTO staff_audit_log
-         (action, actor_id, actor_nickname, actor_role, target_id, target_nickname, old_role, new_role)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-      [
-        action,
-        SYNC_ACTOR.id,
-        SYNC_ACTOR.nickname,
-        SYNC_ACTOR.role,
-        target?.id ?? null,
-        target?.nickname ?? null,
-        oldRole,
-        newRole,
-      ]
-    )
+    const { error } = await db.from("staff_audit_log").insert({ action, actor_id: SYNC_ACTOR.id, actor_nickname: SYNC_ACTOR.nickname, actor_role: SYNC_ACTOR.role, target_id: target?.id ?? null, target_nickname: target?.nickname ?? null, old_role: oldRole, new_role: newRole })
+    if (error) throw error
   } catch (err) {
     console.error("[sync-from-sheets] failed to write staff audit log entry:", err)
   }
@@ -321,18 +283,13 @@ async function logSyncAction(
 
 export async function GET() {
   // Early checks — return clear 500 messages instead of cryptic errors
-  const pgUrl = process.env.POSTGRES_URL_NON_POOLING ?? process.env.POSTGRES_URL
-  if (!pgUrl) {
-    console.error("[sync-from-sheets] ERROR: POSTGRES_URL not set")
-    return NextResponse.json({ error: "POSTGRES_URL не задан" }, { status: 500 })
-  }
   const gKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY
   if (!gKey) {
     console.error("[sync-from-sheets] ERROR: GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY not set")
     return NextResponse.json({ error: "GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY не задан" }, { status: 500 })
   }
 
-  const db = getPool()
+  const db = getSupabaseServer()
   try {
     console.log("[sync-from-sheets] step: getAuth")
     const auth = getAuth()
@@ -360,19 +317,17 @@ export async function GET() {
     console.log("[sync-from-sheets] parsed employees:", sheetEmployees.length)
 
     console.log("[sync-from-sheets] step: ensureColumns")
-    await ensureColumns(db)
-    await ensureStaffAuditTable(db)
+    await ensureColumns()
+    await ensureStaffAuditTable()
 
     // Fetch all existing users (columns we need)
     console.log("[sync-from-sheets] step: SELECT users")
-    const { rows: dbUsers } = await db.query(`
-      SELECT id, username, position, secondary_role, position_title, absent_since
-      FROM users
-    `)
+    const { data: dbUsers, error: usersError } = await db.from("users").select("id,username,position,secondary_role,position_title,absent_since,vk_id")
+    if (usersError) throw usersError
     console.log("[sync-from-sheets] db users count:", dbUsers.length)
 
     // Index by nickname (username column in DB)
-    const dbByNickname = new Map<string, { id: string; position: string | null; secondary_role: string | null; position_title: string | null; absent_since: Date | null }>()
+    const dbByNickname = new Map<string, { id: string; position: string | null; secondary_role: string | null; position_title: string | null; absent_since: string | null; vk_id: string | null }>()
     for (const u of dbUsers) dbByNickname.set(u.username, u)
 
     const sheetNicknames = new Set(sheetEmployees.map((e) => e.nickname))
@@ -385,26 +340,10 @@ export async function GET() {
         // ── New account ──────────────────────────────────────────────────────
         // Password = bank account number from col H; flag it as default
         const password = emp.bankAccount.trim() || "password123"
-        const insertRes = await db.query(
-          `INSERT INTO users
-             (username, password, full_name, position, rank, avatar, vk_id, position_title, is_default_password, medical_card)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true, $9)
-           ON CONFLICT (username) DO NOTHING
-           RETURNING id`,
-          [
-            emp.nickname,
-            password,
-            emp.nickname,
-            emp.role,
-            emp.rank,
-            "/avatars/cdud.png",
-            emp.vkId,
-            emp.position,
-            emp.medicalCard || null,
-          ]
-        )
+        const { data: insertedUser, error: insertError } = await db.from("users").upsert({ username: emp.nickname, password, full_name: emp.nickname, position: emp.role, rank: emp.rank, avatar: "/avatars/cdud.png", vk_id: emp.vkId, position_title: emp.position, is_default_password: true, medical_card: emp.medicalCard || null }, { onConflict: "username", ignoreDuplicates: true }).select("id").maybeSingle()
+        if (insertError) throw insertError
         stats.created++
-        const newId = insertRes.rows[0]?.id
+        const newId = insertedUser?.id
         if (newId) {
           await logSyncAction(db, "add", { id: newId, nickname: emp.nickname }, null, emp.position)
         }
@@ -422,17 +361,10 @@ export async function GET() {
         const oldLabel = existing.position_title || existing.position || null
         const newLabel = emp.position || emp.role
 
-        await db.query(
-          `UPDATE users SET
-             position      = $2,
-             rank          = $3,
-             position_title = $4,
-             medical_card = $5,
-             vk_id         = CASE WHEN $6::text IS NOT NULL AND (vk_id IS NULL OR vk_id = '') THEN $6::text ELSE vk_id END,
-             updated_at    = NOW()
-           WHERE id = $1`,
-          [existing.id, emp.role, emp.rank, emp.position, emp.medicalCard || null, emp.vkId]
-        )
+        const updatePayload: any = { position: emp.role, rank: emp.rank, position_title: emp.position, medical_card: emp.medicalCard || null, updated_at: new Date().toISOString() }
+        if (emp.vkId && !existing.vk_id) updatePayload.vk_id = emp.vkId
+        const { error: updateError } = await db.from("users").update(updatePayload).eq("id", existing.id)
+        if (updateError) throw updateError
         stats.updated++
 
         // Only log an entry to the staff log when the position/role actually changed
@@ -452,14 +384,14 @@ export async function GET() {
       if (dbUser.secondary_role === "Тех. Администратор" || dbUser.position_title === "Тех. Администратор") continue
 
       if (!sheetNicknames.has(nickname)) {
-        const absentSince: Date | null = dbUser.absent_since ?? null
+        const absentSince: string | null = dbUser.absent_since ?? null
 
         if (!absentSince) {
           // First time seeing this account absent — mark the time, do NOT delete yet
-          await db.query("UPDATE users SET absent_since = NOW() WHERE id = $1", [dbUser.id])
-        } else if (Date.now() - absentSince.getTime() >= THREE_MINUTES_MS) {
+          await db.from("users").update({ absent_since: new Date().toISOString() }).eq("id", dbUser.id)
+        } else if (Date.now() - new Date(absentSince).getTime() >= THREE_MINUTES_MS) {
           // Been absent for 3+ minutes — safe to delete
-          await db.query("DELETE FROM users WHERE id = $1", [dbUser.id])
+          await db.from("users").delete().eq("id", dbUser.id)
           stats.deleted++
           await logSyncAction(
             db,
@@ -472,16 +404,15 @@ export async function GET() {
         // else: still within the grace period — skip
       } else {
         // Account is present in the sheet — clear any pending absent marker
-        await db.query("UPDATE users SET absent_since = NULL WHERE id = $1 AND absent_since IS NOT NULL", [dbUser.id])
+        await db.from("users").update({ absent_since: null }).eq("id", dbUser.id).not("absent_since", "is", null)
       }
     }
 
     console.log("[sync-from-sheets] step: done, stats:", stats)
-    await db.end()
     return NextResponse.json({ success: true, stats, total: sheetEmployees.length })
   } catch (err: any) {
     console.error("[sync-from-sheets] ERROR step failed:", err?.message, err?.stack)
-    try { await db.end() } catch {}
+
     return NextResponse.json({ error: err.message, stack: process.env.NODE_ENV !== "production" ? err.stack : undefined }, { status: 500 })
   }
 }

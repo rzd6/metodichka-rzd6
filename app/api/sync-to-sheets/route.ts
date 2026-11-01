@@ -1,13 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { google } from "googleapis"
 import { GoogleAuth } from "google-auth-library"
-import { Pool } from "pg"
-
-function getPool(): Pool {
-  const connectionString = process.env.POSTGRES_URL ?? process.env.POSTGRES_URL_NON_POOLING
-  if (!connectionString) throw new Error("Не задана переменная POSTGRES_URL или POSTGRES_URL_NON_POOLING")
-  return new Pool({ connectionString, max: 3 })
-}
+import { getSupabaseServer } from "@/lib/supabase-server"
 
 const SERVICE_ACCOUNT_EMAIL = "rzd6-metodichka@rzd-metodichka.iam.gserviceaccount.com"
 
@@ -277,28 +271,14 @@ export async function POST(req: NextRequest) {
     const shiftDate = date || new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Moscow" })
     const dateLabel = formatDateRu(shiftDate)
 
-    const db = getPool()
-
-    // Только занятые рейсы на выбранную дату + данные поезда
-    const shiftRes = await db.query(
-      `SELECT ts.*, t.direction, t.class, t.depart_start, t.arrive_middle, t.depart_middle,
-              t.arrive_end, t.platform_start, t.platform_middle, t.platform_end,
-              COALESCE(ts.delay_minutes, 0) AS delay_minutes
-       FROM train_shifts ts
-       JOIN trains t ON t.train_number = ts.train_number
-       WHERE ts.shift_date = $1
-       ORDER BY
-         CASE t.direction
-           WHEN 'mirny-privolzhsk' THEN 1
-           WHEN 'privolzhsk-mirny' THEN 2
-           ELSE 3
-         END,
-         COALESCE(t.depart_start, '99:99') ASC`,
-      [shiftDate]
-    )
-    const claimedShifts: any[] = shiftRes.rows
-
-    await db.end()
+    const db = getSupabaseServer()
+    const { data: shifts, error: shiftsError } = await db.from("train_shifts").select("*, trains!inner(direction,class,depart_start,arrive_middle,depart_middle,arrive_end,platform_start,platform_middle,platform_end)").eq("shift_date", shiftDate).order("train_number", { ascending: true })
+    if (shiftsError) throw shiftsError
+    const claimedShifts: any[] = (shifts ?? []).map((row: any) => ({ ...row, ...row.trains, trains: undefined }))
+    claimedShifts.sort((a, b) => {
+      const direction = (v: any) => v === "mirny-privolzhsk" ? 1 : v === "privolzhsk-mirny" ? 2 : 3
+      return direction(a.direction) - direction(b.direction) || String(a.depart_start ?? "99:99").localeCompare(String(b.depart_start ?? "99:99"))
+    })
 
     const auth = getAuth()
     const sheets = google.sheets({ version: "v4", auth })
