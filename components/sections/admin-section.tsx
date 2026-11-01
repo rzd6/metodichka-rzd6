@@ -223,6 +223,7 @@ export function AdminSection() {
   }
 
   const handleToggleTechAdmin = async (user: User) => {
+    if (!canGrantTechAdmin(user)) return
     const isRemoving = user.secondaryRole === "Тех. Администратор"
     const newSecondaryRole = isRemoving ? undefined : "Тех. Администратор"
     await updateUser(user.id, { secondaryRole: newSecondaryRole })
@@ -243,6 +244,7 @@ export function AdminSection() {
   }
 
   const handleToggleRZD = async (user: User) => {
+    if (!canGrantRZD(user)) return
     const isRemoving = user.secondaryRole === "РЖД"
     const newSecondaryRole = isRemoving ? undefined : "РЖД"
     await updateUser(user.id, { secondaryRole: newSecondaryRole })
@@ -556,9 +558,17 @@ export function AdminSection() {
 
   const getRoleIcon = (role: User["role"], size: "sm" | "md" = "md") => {
     const iconSize = size === "sm" ? "w-4 h-4" : "w-5 h-5"
-    const color = "#ffffff"
+  const colors: Record<UserRole, string> = {
+    "Руководство": "#fbbf24",
+    "Заместитель": "#a78bfa",
+    "Старший Состав": "#60a5fa",
+    "ЦдУД": "#34d399",
+    "ПТО": "#fb923c",
+    "Тех. Администратор": "#f472b6",
+  }
+  const color = colors[role] ?? "#94a3b8"
 
-    switch (role) {
+  switch (role) {
       case "Руководство":
         return <Crown className={iconSize} style={{ color }} />
       case "Заместитель":
@@ -658,7 +668,7 @@ export function AdminSection() {
             </button>
           ))}
         </div>
-        <div className="flex items-start gap-3 pb-3 border-b" style={{ borderColor: getTieColor() + "40" }}>
+        <div className="relative flex items-start gap-3 pb-3 border-b" style={{ borderColor: getTieColor() + "40" }}>
           <div
             className="p-3 rounded-xl"
             style={{ background: `linear-gradient(135deg, ${getTieColor()}20, ${getTieColor()}10)` }}
@@ -674,7 +684,7 @@ export function AdminSection() {
             </p>
           </div>
           <div className="ml-auto flex shrink-0 items-center gap-2">
-            <BugReportButton sectionLabel="admin" />
+            <div className="absolute left-1/2 top-0 -translate-x-1/2"><BugReportButton sectionLabel="admin" /></div>
           </div>
         </div>
         {currentUser && (
@@ -734,7 +744,7 @@ export function AdminSection() {
       )}
 
       {/* Header */}
-      <div className="flex items-start gap-3 pb-3 border-b" style={{ borderColor: getTieColor() + "40" }}>
+      <div className="relative flex items-start gap-3 pb-3 border-b" style={{ borderColor: getTieColor() + "40" }}>
         <div
           className="p-3 rounded-xl"
           style={{
@@ -787,7 +797,7 @@ export function AdminSection() {
           )}
         </div>
           <div className="ml-auto flex shrink-0 items-center gap-2">
-            <BugReportButton sectionLabel="admin" />
+            <div className="absolute left-1/2 top-0 -translate-x-1/2"><BugReportButton sectionLabel="admin" /></div>
             <Button
 
             variant="outline"
@@ -804,7 +814,7 @@ export function AdminSection() {
             }`}
           >
             <RefreshCw className={`w-3 h-3 mr-1.5 ${isRefreshing ? "animate-spin" : ""}`} />
-            Обновить
+            Обно��ить
           </Button>
         </div>
       </div>
@@ -1106,7 +1116,7 @@ export function AdminSection() {
                             </Select>
                           )
                         })()}
-                        {/* VK ID field — принимает ссылку, короткое имя или числовой ID */}
+                        {/* VK ID field — принимает ссылку, короткое имя или числ��вой ID */}
                         <div className="flex flex-col gap-1">
                           <div
                             className="flex items-center rounded-lg border overflow-hidden"

@@ -129,7 +129,7 @@ export function SectionsManagementTab({ currentUser }: Props) {
   return (
     <div className="space-y-3">
       {/* Header */}
-      <div className="flex items-center gap-3 pb-3 border-b" style={{ borderColor: tieColor + "40" }}>
+      <div className="relative flex items-center gap-3 pb-3 border-b" style={{ borderColor: tieColor + "40" }}>
         <div className="p-3 rounded-xl" style={{ background: `linear-gradient(135deg, ${tieColor}20, ${tieColor}10)` }}>
           <Layers className="w-6 h-6" style={{ color: tieColor }} />
         </div>
