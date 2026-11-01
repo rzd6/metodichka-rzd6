@@ -14,7 +14,7 @@ export async function GET(_req: NextRequest) {
   try {
     const { data, error } = await getSupabaseServer().from("users").select("username,position,position_title,rank,created_at").in("position", ["Руководство", "Заместитель", "Старший Состав", "Тех. Администратор"]).order("rank", { ascending: false }).order("created_at", { ascending: true })
     if (error) throw error
-    const staff = (data ?? []).map((r) => ({ username: r.username, role: r.position, positionTitle: r.position_title ?? null, rank: Number(r.rank) }))
+    const staff = (data ?? []).map((r: any) => ({ username: r.username, role: r.position, positionTitle: r.position_title ?? null, rank: Number(r.rank) }))
     return NextResponse.json({ data: staff }, { headers: CORS_HEADERS })
   } catch (err: any) { return NextResponse.json({ error: err.message, data: [] }, { status: 500, headers: CORS_HEADERS }) }
 }

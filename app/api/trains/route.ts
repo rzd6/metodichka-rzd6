@@ -1,144 +1,37 @@
 import { NextRequest, NextResponse } from "next/server"
-import { Pool } from "pg"
+import { getSupabaseServer } from "@/lib/supabase-server"
 
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"
-
-let pool: Pool | null = null
-
-function getPool(): Pool {
-  if (!pool) {
-    pool = new Pool({
-      connectionString: process.env.POSTGRES_URL ?? process.env.POSTGRES_URL_NON_POOLING,
-      max: 3,
-    })
-  }
-  return pool
-}
-
-async function ensureTables() {
-  const db = getPool()
-  await db.query(`
-    CREATE TABLE IF NOT EXISTS trains (
-      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      train_number INTEGER UNIQUE NOT NULL,
-      direction TEXT NOT NULL,
-      class TEXT NOT NULL DEFAULT 'Скоростной',
-      depart_depot TEXT,
-      depart_start TEXT,
-      arrive_middle TEXT,
-      depart_middle TEXT,
-      arrive_end TEXT,
-      arrive_depot TEXT,
-      platform_start INTEGER DEFAULT 1,
-      platform_middle INTEGER DEFAULT 1,
-      platform_end INTEGER DEFAULT 1,
-      display_days INTEGER[] DEFAULT ARRAY[0,1,2,3,4,5,6],
-      created_at TIMESTAMPTZ DEFAULT NOW()
-    );
-  `)
-  // Миграция для старых БД — добавляем колонки depot если их нет
-  await db.query(`ALTER TABLE trains ADD COLUMN IF NOT EXISTS depart_depot TEXT;`)
-  await db.query(`ALTER TABLE trains ADD COLUMN IF NOT EXISTS arrive_depot TEXT;`)
-  await db.query(`ALTER TABLE trains ADD COLUMN IF NOT EXISTS display_days INTEGER[] DEFAULT ARRAY[0,1,2,3,4,5,6];`)
-}
-
-function corsHeaders(): Record<string, string> {
-  return {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
-  }
-}
-
-export async function OPTIONS() {
-  return new Response(null, { status: 204, headers: corsHeaders() })
-}
-
-// GET /api/trains  — list all trains
-// GET /api/trains?id=UUID — single train
+function corsHeaders() { return { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" } }
+export async function OPTIONS() { return new Response(null, { status: 204, headers: corsHeaders() }) }
 export async function GET(req: NextRequest) {
   try {
-    await ensureTables()
-    const db = getPool()
-    const { searchParams } = new URL(req.url)
-    const id = searchParams.get("id")
-
-    if (id) {
-      const res = await db.query("SELECT * FROM trains WHERE id = $1", [id])
-      return NextResponse.json({ data: res.rows[0] ?? null }, { headers: corsHeaders() })
-    }
-
-    const res = await db.query("SELECT * FROM trains ORDER BY train_number ASC")
-    return NextResponse.json({ data: res.rows }, { headers: corsHeaders() })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500, headers: corsHeaders() })
-  }
+    const id = new URL(req.url).searchParams.get("id")
+    let query = getSupabaseServer().from("trains").select("*")
+    query = id ? query.eq("id", id).maybeSingle() : query.order("train_number", { ascending: true })
+    const { data, error } = await query
+    if (error) throw error
+    return NextResponse.json({ data: id ? data : data ?? [] }, { headers: corsHeaders() })
+  } catch (err: any) { return NextResponse.json({ error: err.message }, { status: 500, headers: corsHeaders() }) }
 }
-
-// POST /api/trains — create train
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   try {
-    await ensureTables()
-    const db = getPool()
-    const body = await req.json()
-    const {
-      train_number, direction, class: trainClass,
-      depart_depot, depart_start, arrive_middle, depart_middle, arrive_end, arrive_depot,
-      platform_start, platform_middle, platform_end, display_days,
-    } = body
-
-    const res = await db.query(
-      `INSERT INTO trains
-        (train_number, direction, class, depart_depot, depart_start, arrive_middle, depart_middle, arrive_end, arrive_depot, platform_start, platform_middle, platform_end, display_days)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
-       ON CONFLICT (train_number) DO NOTHING
-       RETURNING *`,
-      [train_number, direction, trainClass ?? "Скоростной",
-        depart_depot ?? null, depart_start ?? null, arrive_middle ?? null, depart_middle ?? null, arrive_end ?? null, arrive_depot ?? null,
-        platform_start ?? 1, platform_middle ?? 1, platform_end ?? 1, Array.isArray(display_days) && display_days.length ? display_days : [0,1,2,3,4,5,6]]
-    )
-    return NextResponse.json({ data: res.rows[0] ?? null })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
-  }
+    const b = await req.json()
+    const row = { train_number: b.train_number, direction: b.direction, class: b.class ?? "Скоростной", depart_depot: b.depart_depot ?? null, depart_start: b.depart_start ?? null, arrive_middle: b.arrive_middle ?? null, depart_middle: b.depart_middle ?? null, arrive_end: b.arrive_end ?? null, arrive_depot: b.arrive_depot ?? null, platform_start: b.platform_start ?? 1, platform_middle: b.platform_middle ?? 1, platform_end: b.platform_end ?? 1, display_days: Array.isArray(b.display_days) && b.display_days.length ? b.display_days : [0,1,2,3,4,5,6] }
+    const { data, error } = await getSupabaseServer().from("trains").upsert(row, { onConflict: "train_number", ignoreDuplicates: true }).select().maybeSingle()
+    if (error) throw error
+    return NextResponse.json({ data: data ?? null })
+  } catch (err: any) { return NextResponse.json({ error: err.message }, { status: 500 }) }
 }
-
-// PATCH /api/trains — update train by id
-export async function PATCH(req: NextRequest) {
+export async function PATCH(req: Request) {
   try {
-    await ensureTables()
-    const db = getPool()
-    const body = await req.json()
-    const { id, ...updates } = body
+    const { id, ...updates } = await req.json()
     if (!id) return NextResponse.json({ error: "id required" }, { status: 400 })
-    // rename "class" key to avoid reserved word issues in dynamic query
-    if ("class" in updates) {
-      updates["class"] = updates["class"]
-    }
-    const fields = Object.keys(updates)
-    if (fields.length === 0) return NextResponse.json({ error: "No fields to update" }, { status: 400 })
-    const setClauses = fields.map((f, i) => `"${f}" = $${i + 2}`).join(", ")
-    const values = [id, ...fields.map((f) => updates[f])]
-    const res = await db.query(
-      `UPDATE trains SET ${setClauses} WHERE id = $1 RETURNING *`,
-      values
-    )
-    return NextResponse.json({ data: res.rows[0] ?? null })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
-  }
+    if (!Object.keys(updates).length) return NextResponse.json({ error: "No fields to update" }, { status: 400 })
+    const { data, error } = await getSupabaseServer().from("trains").update(updates).eq("id", id).select().maybeSingle()
+    if (error) throw error
+    return NextResponse.json({ data: data ?? null })
+  } catch (err: any) { return NextResponse.json({ error: err.message }, { status: 500 }) }
 }
-
-// DELETE /api/trains — delete train by id
-export async function DELETE(req: NextRequest) {
-  try {
-    await ensureTables()
-    const db = getPool()
-    const body = await req.json()
-    if (!body.id) return NextResponse.json({ error: "id required" }, { status: 400 })
-    await db.query("DELETE FROM trains WHERE id = $1", [body.id])
-    return NextResponse.json({ success: true })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
-  }
+export async function DELETE(req: Request) {
+  try { const { id } = await req.json(); if (!id) return NextResponse.json({ error: "id required" }, { status: 400 }); const { error } = await getSupabaseServer().from("trains").delete().eq("id", id); if (error) throw error; return NextResponse.json({ success: true }) } catch (err: any) { return NextResponse.json({ error: err.message }, { status: 500 }) }
 }
