@@ -150,7 +150,7 @@ export function AdminSection() {
     user.role === "Тех. Администратор" || user.secondaryRole === "Тех. Администратор"
 
   const canDeleteUser = (user: User) => {
-    if (!currentUser) return false
+    if (!currentUser || !user.nickname?.trim()) return false
     // Тех. Администратор targets can only be managed by another Тех. Администратор
     if (isTargetTechAdmin(user) && !isCurrentTechAdmin()) return false
     if (isCurrentTechAdmin()) return true
@@ -162,7 +162,7 @@ export function AdminSection() {
   }
 
   const canEditUser = (user: User) => {
-    if (!currentUser) return false
+    if (!currentUser || !user.nickname?.trim()) return false
     // Тех. Администратор targets can only be managed by another Тех. Администратор
     if (isTargetTechAdmin(user) && !isCurrentTechAdmin()) return false
     if (isCurrentTechAdmin()) return true
@@ -174,7 +174,7 @@ export function AdminSection() {
   }
 
   const canSeePassword = (user: User) => {
-    if (!currentUser) return false
+    if (!currentUser || !user.nickname?.trim()) return false
     // Тех. Администратор targets can only be managed by another Тех. Администратор
     if (isTargetTechAdmin(user) && !isCurrentTechAdmin()) return false
     if (isCurrentTechAdmin()) return true
@@ -183,7 +183,7 @@ export function AdminSection() {
   }
 
   const canChangeRole = (user: User) => {
-    if (!currentUser) return false
+    if (!currentUser || !user.nickname?.trim()) return false
     // Тех. Администратор targets can only be managed by another Тех. Администратор
     if (isTargetTechAdmin(user) && !isCurrentTechAdmin()) return false
     if (isCurrentTechAdmin()) return true
@@ -203,7 +203,7 @@ export function AdminSection() {
    * user with only the РЖД secondary role also cannot.
    */
   const canGrantTechAdmin = (user: User) => {
-    if (!currentUser) return false
+    if (!currentUser || !user.nickname?.trim()) return false
     if (user.id === currentUser.id) return false
     if (user.role === "Тех. Администратор") return false
     return isCurrentTechAdmin()
@@ -214,7 +214,7 @@ export function AdminSection() {
    * role. A user who only has the РЖД secondary role cannot grant it to others.
    */
   const canGrantRZD = (user: User) => {
-    if (!currentUser) return false
+    if (!currentUser || !user.nickname?.trim()) return false
     if (user.id === currentUser.id) return false
     if (user.role === "Руководство") return false
     // РЖД-only secondary holders cannot grant it; only primary Руководство or Тех. Администратор can
