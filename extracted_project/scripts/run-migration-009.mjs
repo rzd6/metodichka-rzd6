@@ -33,27 +33,8 @@ const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/exec_sql`, {
 
 if (!res.ok) {
   const txt = await res.text()
-  console.error("exec_sql RPC not available (expected). Trying pg direct...", txt)
-}
-
-// Fallback: use pg driver with POSTGRES_URL
-const POSTGRES_URL = process.env.POSTGRES_URL_NON_POOLING || process.env.POSTGRES_URL
-if (!POSTGRES_URL) {
-  console.error("No POSTGRES_URL available for direct connection")
+  console.error("Migration failed: exec_sql RPC returned an error", txt)
   process.exit(1)
 }
 
-const { default: pg } = await import("pg")
-const client = new pg.Client({ connectionString: POSTGRES_URL, ssl: { rejectUnauthorized: false } })
-
-try {
-  await client.connect()
-  console.log("Connected to Postgres directly")
-  await client.query(sql)
-  console.log("Migration 009 completed successfully!")
-} catch (err) {
-  console.error("Migration failed:", err.message)
-  process.exit(1)
-} finally {
-  await client.end()
-}
+console.log("Migration 009 completed successfully!")
