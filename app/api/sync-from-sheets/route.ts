@@ -3,8 +3,6 @@ import { google } from "googleapis"
 import { GoogleAuth } from "google-auth-library"
 import { getSupabaseServer } from "@/lib/supabase-server"
 
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"
-
 const SPREADSHEET_ID = "1CnTpA7Xj7T5Tsofw_oq9S9FldU_AnOd_oiGMLPigEEg"
 const DEV_NICKNAME = "v0_dev_rzd"
 const SERVICE_ACCOUNT_EMAIL = "rzd6-metodichka@rzd-metodichka.iam.gserviceaccount.com"
@@ -17,12 +15,12 @@ function getAuth() {
   // Render / some hosts store the key with literal \n instead of real newlines,
   // or wrap it in extra quotes. Normalize both cases.
   privateKey = privateKey
-    .replace(/^["']|["']$/g, "")   // strip surrounding quotes if any
+    .replace(/^\$'([\s\S]*)'$/, "$1")
+    .replace(/^["']|["']$/g, "")
     .replace(/\\n/g, "\n")          // literal \n → real newline
   if (!privateKey.includes("-----BEGIN")) {
     throw new Error("GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY имеет неверный формат (не содержит BEGIN PRIVATE KEY)")
   }
-  console.log("[sync-from-sheets] private key starts with:", privateKey.slice(0, 40))
   return new GoogleAuth({
     credentials: {
       client_email: SERVICE_ACCOUNT_EMAIL,

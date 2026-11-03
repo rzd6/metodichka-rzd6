@@ -660,7 +660,7 @@ export function AdminSection() {
             </button>
           ))}
         </div>
-        <div className="flex items-start gap-3 pb-3 border-b" style={{ borderColor: getTieColor() + "40" }}>
+        <div className="relative flex items-start gap-3 pb-3 border-b" style={{ borderColor: getTieColor() + "40" }}>
           <div
             className="p-3 rounded-xl"
             style={{ background: `linear-gradient(135deg, ${getTieColor()}20, ${getTieColor()}10)` }}
@@ -675,7 +675,7 @@ export function AdminSection() {
               Управление системными разделами приложения
             </p>
           </div>
-          <div className="ml-auto flex shrink-0 items-center gap-2">
+          <div className="absolute left-1/2 top-0 -translate-x-1/2 flex shrink-0 items-center gap-2">
             <BugReportButton sectionLabel="admin" />
           </div>
         </div>
@@ -736,7 +736,7 @@ export function AdminSection() {
       )}
 
       {/* Header */}
-      <div className="flex items-start gap-3 pb-3 border-b" style={{ borderColor: getTieColor() + "40" }}>
+      <div className="relative flex items-start gap-3 pb-3 border-b" style={{ borderColor: getTieColor() + "40" }}>
         <div
           className="p-3 rounded-xl"
           style={{
@@ -788,7 +788,7 @@ export function AdminSection() {
             </div>
           )}
         </div>
-          <div className="ml-auto flex shrink-0 items-center gap-2">
+          <div className="absolute left-1/2 top-0 -translate-x-1/2 flex shrink-0 items-center gap-2">
             <BugReportButton sectionLabel="admin" />
             <Button
 
@@ -806,7 +806,7 @@ export function AdminSection() {
             }`}
           >
             <RefreshCw className={`w-3 h-3 mr-1.5 ${isRefreshing ? "animate-spin" : ""}`} />
-            Обно��ить
+            Обновить
           </Button>
         </div>
       </div>
@@ -989,7 +989,7 @@ export function AdminSection() {
                   )}
                   {!newVkId && !newVkResolveError && (
                     <p className={`text-xs ${theme.mode === "dark" ? "text-white/40" : "text-gray-400"}`}>
-                      Вставьте ссылку, короткое имя или числовой ID — распознаётся автоматически
+                      Вставьте ссылку, короткое имя или числовой ID — распознаётся автомати��ески
                     </p>
                   )}
                 </div>
@@ -1108,7 +1108,7 @@ export function AdminSection() {
                             </Select>
                           )
                         })()}
-                        {/* VK ID field — принимает ссылку, короткое имя или числ��вой ID */}
+                        {/* VK ID field — принимает ссылку, короткое имя или числовой ID */}
                         <div className="flex flex-col gap-1">
                           <div
                             className="flex items-center rounded-lg border overflow-hidden"

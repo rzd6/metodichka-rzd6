@@ -137,7 +137,7 @@ export function SectionsManagementTab({ currentUser }: Props) {
           <h2 className="text-3xl font-bold" style={{ color: tieColor }}>Управление разделами</h2>
           <p className={`text-sm ${textMuted}`}>Создание, редактирование и видимость разделов</p>
         </div>
-        <div className="flex gap-2">
+        <div className="absolute left-1/2 top-0 -translate-x-1/2 flex gap-2">
           <Button variant="outline" size="sm" onClick={() => load(true)} disabled={refreshing}
             className={`h-8 px-3 text-xs ${isDark ? "border-white/10 bg-transparent text-white hover:bg-white/5" : "border-gray-200 bg-transparent text-black hover:bg-gray-50"}`}>
             <RefreshCw className={`w-3 h-3 mr-1.5 ${refreshing ? "animate-spin" : ""}`} />
