@@ -6,11 +6,16 @@ export async function OPTIONS() { return new Response(null, { status: 204, heade
 export async function GET(req: NextRequest) {
   try {
     const id = new URL(req.url).searchParams.get("id")
-    let query = getSupabaseServer().from("trains").select("*")
-    query = id ? query.eq("id", id).maybeSingle() : query.order("train_number", { ascending: true })
-    const { data, error } = await query
-    if (error) throw error
-    return NextResponse.json({ data: id ? data : data ?? [] }, { headers: corsHeaders() })
+    let lastError: any = null
+    for (let attempt = 0; attempt < 3; attempt++) {
+      let query = getSupabaseServer().from("trains").select("*")
+      query = id ? query.eq("id", id).maybeSingle() : query.order("train_number", { ascending: true })
+      const { data, error } = await query
+      if (!error) return NextResponse.json({ data: id ? data : data ?? [] }, { headers: corsHeaders() })
+      lastError = error
+      await new Promise((resolve) => setTimeout(resolve, 150 * (attempt + 1)))
+    }
+    throw lastError
   } catch (err: any) { return NextResponse.json({ error: err.message }, { status: 500, headers: corsHeaders() }) }
 }
 export async function POST(req: Request) {

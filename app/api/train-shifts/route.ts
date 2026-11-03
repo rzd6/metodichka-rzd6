@@ -2,7 +2,24 @@ import { NextRequest, NextResponse } from "next/server"
 import { getSupabaseServer } from "@/lib/supabase-server"
 const corsHeaders = () => ({ "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" })
 export async function OPTIONS() { return new Response(null, { status: 204, headers: corsHeaders() }) }
-export async function GET(req: NextRequest) { try { const p = new URL(req.url).searchParams; const date = p.get("date") || new Date().toISOString().slice(0, 10); let q = getSupabaseServer().from("train_shifts").select(p.get("with_trains") === "1" ? "*, trains(direction,class,depart_depot,depart_start,arrive_middle,depart_middle,arrive_end,arrive_depot,platform_start,platform_middle,platform_end)" : "*").eq("shift_date", date).order("train_number", { ascending: true }); const { data, error } = await q; if (error) throw error; const rows = (data ?? []).map((r: any) => r.trains ? { ...r, ...r.trains, trains: undefined } : r); return NextResponse.json({ data: rows }, { headers: corsHeaders() }) } catch (err: any) { return NextResponse.json({ error: err.message }, { status: 500, headers: corsHeaders() }) } }
+export async function GET(req: NextRequest) {
+  try {
+    const p = new URL(req.url).searchParams
+    const date = p.get("date") || new Date().toISOString().slice(0, 10)
+    const select = p.get("with_trains") === "1" ? "*, trains(direction,class,depart_depot,depart_start,arrive_middle,depart_middle,arrive_end,arrive_depot,platform_start,platform_middle,platform_end)" : "*"
+    let lastError: any = null
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const { data, error } = await getSupabaseServer().from("train_shifts").select(select).eq("shift_date", date).order("train_number", { ascending: true })
+      if (!error) {
+        const rows = (data ?? []).map((r: any) => r.trains ? { ...r, ...r.trains, trains: undefined } : r)
+        return NextResponse.json({ data: rows }, { headers: corsHeaders() })
+      }
+      lastError = error
+      await new Promise((resolve) => setTimeout(resolve, 150 * (attempt + 1)))
+    }
+    throw lastError
+  } catch (err: any) { return NextResponse.json({ error: err.message }, { status: 500, headers: corsHeaders() }) }
+}
 export async function POST(req: Request) { try { const b = await req.json(); const date = b.shift_date || new Date().toISOString().slice(0, 10); const db = getSupabaseServer(); if (b.dispatcher_nickname) { const { data, error } = await db.from("train_shifts").update({ dispatcher_nickname: b.dispatcher_nickname, dispatcher_role: b.dispatcher_role ?? "ЦдУД" }).eq("train_number", b.train_number).eq("shift_date", date).select().maybeSingle(); if (error) throw error; return NextResponse.json({ data }) } const { data, error } = await db.from("train_shifts").upsert({ train_id: b.train_id, train_number: b.train_number, claimed_by_nickname: b.claimed_by_nickname, claimed_by_role: b.claimed_by_role, shift_date: date }, { onConflict: "train_number,shift_date", ignoreDuplicates: true }).select().maybeSingle(); if (error) throw error; return NextResponse.json({ data: data ?? null }) } catch (err: any) { return NextResponse.json({ error: err.message }, { status: 500 }) } }
 export async function PATCH(req: Request) { try { const b = await req.json(); if (!b.id) return NextResponse.json({ error: "id required" }, { status: 400 }); const { data, error } = await getSupabaseServer().from("train_shifts").update({ delay_minutes: b.delay_minutes ?? 0 }).eq("id", b.id).select().maybeSingle(); if (error) throw error; return NextResponse.json({ data }) } catch (err: any) { return NextResponse.json({ error: err.message }, { status: 500 }) } }
 export async function DELETE(req: Request) { try { const b = await req.json(); let q = getSupabaseServer().from("train_shifts").delete(); if (b.id) q = q.eq("id", b.id); else if (b.train_number && b.shift_date) q = q.eq("train_number", b.train_number).eq("shift_date", b.shift_date); else return NextResponse.json({ error: "id or (train_number + shift_date) required" }, { status: 400 }); const { error } = await q; if (error) throw error; return NextResponse.json({ success: true }, { headers: corsHeaders() }) } catch (err: any) { return NextResponse.json({ error: err.message }, { status: 500, headers: corsHeaders() }) } }

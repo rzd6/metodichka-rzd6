@@ -11,7 +11,10 @@ function getAuth() {
   return new GoogleAuth({
     credentials: {
       client_email: SERVICE_ACCOUNT_EMAIL,
-      private_key: privateKey.replace(/\\n/g, "\n"),
+      private_key: privateKey
+      .replace(/^\$'([\s\S]*)'$/, "$1")
+      .replace(/^['"]|['"]$/g, "")
+      .replace(/\\n/g, "\n"),
     },
     scopes: [
       "https://www.googleapis.com/auth/spreadsheets",

@@ -150,7 +150,7 @@ export function AdminSection() {
     user.role === "Тех. Администратор" || user.secondaryRole === "Тех. Администратор"
 
   const canDeleteUser = (user: User) => {
-    if (!currentUser) return false
+    if (!currentUser || !user.nickname?.trim()) return false
     // Тех. Администратор targets can only be managed by another Тех. Администратор
     if (isTargetTechAdmin(user) && !isCurrentTechAdmin()) return false
     if (isCurrentTechAdmin()) return true
@@ -162,7 +162,7 @@ export function AdminSection() {
   }
 
   const canEditUser = (user: User) => {
-    if (!currentUser) return false
+    if (!currentUser || !user.nickname?.trim()) return false
     // Тех. Администратор targets can only be managed by another Тех. Администратор
     if (isTargetTechAdmin(user) && !isCurrentTechAdmin()) return false
     if (isCurrentTechAdmin()) return true
@@ -174,7 +174,7 @@ export function AdminSection() {
   }
 
   const canSeePassword = (user: User) => {
-    if (!currentUser) return false
+    if (!currentUser || !user.nickname?.trim()) return false
     // Тех. Администратор targets can only be managed by another Тех. Администратор
     if (isTargetTechAdmin(user) && !isCurrentTechAdmin()) return false
     if (isCurrentTechAdmin()) return true
@@ -183,7 +183,7 @@ export function AdminSection() {
   }
 
   const canChangeRole = (user: User) => {
-    if (!currentUser) return false
+    if (!currentUser || !user.nickname?.trim()) return false
     // Тех. Администратор targets can only be managed by another Тех. Администратор
     if (isTargetTechAdmin(user) && !isCurrentTechAdmin()) return false
     if (isCurrentTechAdmin()) return true
@@ -203,7 +203,7 @@ export function AdminSection() {
    * user with only the РЖД secondary role also cannot.
    */
   const canGrantTechAdmin = (user: User) => {
-    if (!currentUser) return false
+    if (!currentUser || !user.nickname?.trim()) return false
     if (user.id === currentUser.id) return false
     if (user.role === "Тех. Администратор") return false
     return isCurrentTechAdmin()
@@ -214,7 +214,7 @@ export function AdminSection() {
    * role. A user who only has the РЖД secondary role cannot grant it to others.
    */
   const canGrantRZD = (user: User) => {
-    if (!currentUser) return false
+    if (!currentUser || !user.nickname?.trim()) return false
     if (user.id === currentUser.id) return false
     if (user.role === "Руководство") return false
     // РЖД-only secondary holders cannot grant it; only primary Руководство or Тех. Администратор can
@@ -223,6 +223,7 @@ export function AdminSection() {
   }
 
   const handleToggleTechAdmin = async (user: User) => {
+    if (!canGrantTechAdmin(user)) return
     const isRemoving = user.secondaryRole === "Тех. Администратор"
     const newSecondaryRole = isRemoving ? undefined : "Тех. Администратор"
     await updateUser(user.id, { secondaryRole: newSecondaryRole })
@@ -243,6 +244,7 @@ export function AdminSection() {
   }
 
   const handleToggleRZD = async (user: User) => {
+    if (!canGrantRZD(user)) return
     const isRemoving = user.secondaryRole === "РЖД"
     const newSecondaryRole = isRemoving ? undefined : "РЖД"
     await updateUser(user.id, { secondaryRole: newSecondaryRole })
@@ -556,9 +558,9 @@ export function AdminSection() {
 
   const getRoleIcon = (role: User["role"], size: "sm" | "md" = "md") => {
     const iconSize = size === "sm" ? "w-4 h-4" : "w-5 h-5"
-    const color = "#ffffff"
+  const color = "#ffffff"
 
-    switch (role) {
+  switch (role) {
       case "Руководство":
         return <Crown className={iconSize} style={{ color }} />
       case "Заместитель":
@@ -987,7 +989,7 @@ export function AdminSection() {
                   )}
                   {!newVkId && !newVkResolveError && (
                     <p className={`text-xs ${theme.mode === "dark" ? "text-white/40" : "text-gray-400"}`}>
-                      Вставьте ссылку, короткое имя или числовой ID — распознаётся автоматически
+                      Вставьте ссылку, короткое имя или числовой ID — распознаётся автомати��ески
                     </p>
                   )}
                 </div>

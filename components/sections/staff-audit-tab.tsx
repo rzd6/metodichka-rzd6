@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { BugReportButton } from "@/components/bug-report-button"
-import { RefreshCw, UserPlus, Trash2, ArrowUp, ArrowDown, Terminal, Crown, ChevronDown, ChevronUp, Users } from "lucide-react"
+import { RefreshCw, UserPlus, Trash2, ArrowUp, ArrowDown, Terminal, Crown, ChevronDown, ChevronUp, Users, ChevronLeft, ChevronRight } from "lucide-react"
 
 export interface StaffAuditEntry {
   id: string
@@ -20,7 +20,7 @@ export interface StaffAuditEntry {
 
 const ACTION_META: Record<
   string,
-  { label: string; icon: React.ComponentType<{ className?: string }>; color: string }
+  { label: string; icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>; color: string }
 > = {
   add:              { label: "Добавлен",       icon: UserPlus,  color: "#22c55e" },
   delete:           { label: "Удалён",         icon: Trash2,    color: "#ef4444" },
@@ -42,14 +42,23 @@ function formatDate(iso: string) {
   })
 }
 
-async function fetchEntries(): Promise<StaffAuditEntry[]> {
+async function fetchEntries(month: string, page: number): Promise<{ entries: StaffAuditEntry[]; hasMore: boolean }> {
   try {
-    const res = await fetch("/api/staff-audit")
-    const { data } = await res.json()
-    return Array.isArray(data) ? data : []
-  } catch {
-    return []
+    const res = await fetch(`/api/staff-audit?month=${month}&page=${page}&pageSize=50`)
+    const { data, hasMore } = await res.json()
+    return { entries: Array.isArray(data) ? data : [], hasMore: Boolean(hasMore) }
+  } catch { return { entries: [], hasMore: false } }
+}
+
+function monthOptions() {
+  const result: string[] = []
+  const date = new Date()
+  date.setUTCDate(1)
+  for (let i = 0; i < 24; i++) {
+    result.push(date.toISOString().slice(0, 7))
+    date.setUTCMonth(date.getUTCMonth() - 1)
   }
+  return result
 }
 
 interface Props {
@@ -62,6 +71,9 @@ export function StaffAuditTab({ tieColor, isDark }: Props) {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
+  const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7))
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(false)
 
   const border = isDark ? "border-white/10" : "border-black/10"
   const cardBg = isDark ? "bg-[#0f1419]/50" : "bg-white"
@@ -70,11 +82,12 @@ export function StaffAuditTab({ tieColor, isDark }: Props) {
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true)
     else setRefreshing(true)
-    const data = await fetchEntries()
-    setEntries(data)
+    const result = await fetchEntries(month, page)
+    setEntries(result.entries)
+    setHasMore(result.hasMore)
     if (!silent) setLoading(false)
     else setRefreshing(false)
-  }, [])
+  }, [month, page])
 
   useEffect(() => { load() }, [load])
 
@@ -105,7 +118,15 @@ export function StaffAuditTab({ tieColor, isDark }: Props) {
             Добавление, удаление и изменение ролей
           </p>
         </div>
-        <div className="ml-auto flex shrink-0 items-center gap-2">
+        <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-2">
+          <label className={`flex items-center gap-2 text-xs ${textMuted}`}>
+            <span className="sr-only">Месяц</span>
+            <select value={month} onChange={(event) => { setMonth(event.target.value); setPage(1) }} className={`h-8 rounded-md border px-2 text-xs ${isDark ? "border-white/10 bg-white/5 text-white" : "border-gray-200 bg-white text-black"}`}>
+              {monthOptions().map((value) => <option key={value} value={value}>{value}</option>)}
+            </select>
+          </label>
+          <Button variant="outline" size="sm" onClick={() => setPage((value) => Math.max(1, value - 1))} disabled={page === 1 || loading} aria-label="Предыдущая страница"><ChevronLeft className="h-3 w-3" /></Button>
+          <Button variant="outline" size="sm" onClick={() => setPage((value) => value + 1)} disabled={!hasMore || loading} aria-label="Следующая страница"><ChevronRight className="h-3 w-3" /></Button>
           <BugReportButton sectionLabel="staff-log" />
           <Button
           variant="outline"
@@ -162,7 +183,7 @@ export function StaffAuditTab({ tieColor, isDark }: Props) {
                     className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
                     style={{ backgroundColor: meta.color + "20" }}
                   >
-                    <ActionIcon className="w-4 h-4" style={{ color: meta.color } as React.CSSProperties} />
+                    <ActionIcon className="w-4 h-4" style={{ color: meta.color }} />
                   </div>
 
                   <div className="flex-1 min-w-0">

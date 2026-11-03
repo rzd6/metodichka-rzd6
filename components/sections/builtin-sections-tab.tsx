@@ -40,21 +40,30 @@ const BUILTIN_SECTIONS: { id: string; defaultTitle: string; hasContent?: boolean
 ]
 
 // Map section id to its static content from content.ts
+function cardId(category: string, value: string) {
+  let hash = 0
+  for (let i = 0; i < value.length; i++) hash = (hash * 31 + value.charCodeAt(i)) | 0
+  return `card-${category}-${Math.abs(hash)}`
+}
+
+function flattenCards(value: any, category = ""): any[] {
+  if (Array.isArray(value)) return value.flatMap((item) => flattenCards(item, category))
+  if (value && typeof value === "object") {
+    if (Array.isArray(value.questions)) return [{ ...value, content: value.questions, category }]
+    if (Array.isArray(value.content)) return [{ ...value, category }]
+    return Object.entries(value).flatMap(([key, child]) => flattenCards(child, key))
+  }
+  if (typeof value === "string") return [{ id: cardId(category || "card", value), title: category || "Карточка", content: [value], category }]
+  return []
+}
+
 function getStaticContent(sectionId: string): { main?: any[]; additional?: any[] } | null {
-  if (sectionId === "lectures") return { main: contentData.lectures.main, additional: contentData.lectures.additional }
-  // training may be a flat array
-  if (sectionId === "training") {
-    const t = (contentData as any).training
-    if (Array.isArray(t)) return { main: t }
-    return { main: t?.main ?? [], additional: t?.additional ?? [] }
-  }
-  if (sectionId === "exams") return { main: (contentData as any).exams?.theoretical ?? [], additional: (contentData as any).exams?.practical ?? [] }
-  if (sectionId === "interviews") return { main: (contentData as any).interviews ?? [] }
-  if (["contents", "events", "retro-train", "orders", "gov-wave"].includes(sectionId)) {
-    const section = (contentData as any)[sectionId]
-    return { main: Array.isArray(section) ? section : section?.main ?? [] }
-  }
-  return null
+  const source: any = (contentData as any)[sectionId]
+  if (!source) return null
+  if (sectionId === "lectures") return { main: flattenCards(source.main), additional: flattenCards(source.additional) }
+  if (sectionId === "exams") return { main: flattenCards(source.theoretical, "Теоретические вопросы"), additional: flattenCards(source.practical, "Практические вопросы") }
+  if (source.main || source.additional) return { main: flattenCards(source.main), additional: flattenCards(source.additional) }
+  return { main: flattenCards(source, sectionId) }
 }
 
 interface Props {
@@ -162,8 +171,11 @@ export function BuiltinSectionsTab({ currentUser }: Props) {
     setSaving(true)
     const staticContent = getStaticContent(contentEditingId)
     const contentOverride: any = {}
-    if (staticContent?.main !== undefined) contentOverride.main = editedLectures
-    if (staticContent?.additional !== undefined) contentOverride.additional = editedLecturesAdd
+    const serialize = (items: any[]) => contentEditingId === "exams"
+      ? items.map(({ content, ...item }) => ({ ...item, questions: content ?? [] }))
+      : items
+    if (staticContent?.main !== undefined) contentOverride.main = serialize(editedLectures)
+    if (staticContent?.additional !== undefined) contentOverride.additional = serialize(editedLecturesAdd)
     await upsertBuiltinContent(contentEditingId, contentOverride, actor)
     await reload()
     window.dispatchEvent(new Event("builtinOverridesUpdated"))
@@ -198,6 +210,13 @@ export function BuiltinSectionsTab({ currentUser }: Props) {
   const updateLectureTitle = (lectureIdx: number, val: string) => {
     const list = [...getCurrentList()]
     list[lectureIdx] = { ...list[lectureIdx], title: val }
+    setCurrentList(list)
+  }
+  const updateAnswer = (lectureIdx: number, answerIdx: number, val: string) => {
+    const list = [...getCurrentList()]
+    const answers = Array.isArray(list[lectureIdx].answers) ? [...list[lectureIdx].answers] : []
+    answers[answerIdx] = val
+    list[lectureIdx] = { ...list[lectureIdx], answers }
     setCurrentList(list)
   }
   const addLecture = () => {
@@ -331,6 +350,16 @@ export function BuiltinSectionsTab({ currentUser }: Props) {
                         Добавить строку
                       </button>
                     </div>
+                    {Array.isArray(lecture.answers) && (
+                      <div>
+                        <p className={`text-[10px] font-semibold uppercase tracking-wide mb-1.5 ${textMuted}`}>Ответы</p>
+                        <div className="space-y-1.5">
+                          {lecture.answers.map((answer: string, answerIdx: number) => (
+                            <input key={answerIdx} className={`${inputCls} w-full text-xs`} value={answer ?? ""} onChange={(e) => updateAnswer(lectureIdx, answerIdx, e.target.value)} placeholder={`Ответ ${answerIdx + 1}`} />
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -344,7 +373,7 @@ export function BuiltinSectionsTab({ currentUser }: Props) {
           className={`flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-xl border border-dashed transition-colors w-full justify-center ${isDark ? "border-white/20 text-white/50 hover:text-white hover:border-white/40" : "border-black/20 text-black/40 hover:text-black hover:border-black/40"}`}
         >
           <Plus className="w-3.5 h-3.5" />
-          Добавить лекцию
+          {contentEditingId === "lectures" || contentEditingId === "training" ? "Добавить лекцию" : "Добавить карточку"}
         </button>
 
         {/* Actions */}

@@ -10,7 +10,10 @@ function getAuth() {
   if (!privateKey) throw new Error("GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY не задан")
 
   // Normalize escaped newlines that come from env var storage
-  const normalizedKey = privateKey.replace(/\\n/g, "\n")
+  const normalizedKey = privateKey
+    .replace(/^\$'([\s\S]*)'$/, "$1")
+    .replace(/^['"]|['"]$/g, "")
+    .replace(/\\n/g, "\n")
 
   const auth = new GoogleAuth({
     credentials: {
