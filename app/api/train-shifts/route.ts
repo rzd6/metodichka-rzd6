@@ -6,12 +6,18 @@ export async function GET(req: NextRequest) {
   try {
     const p = new URL(req.url).searchParams
     const date = p.get("date") || new Date().toISOString().slice(0, 10)
-    const select = p.get("with_trains") === "1" ? "*, trains(direction,class,depart_depot,depart_start,arrive_middle,depart_middle,arrive_end,arrive_depot,platform_start,platform_middle,platform_end)" : "*"
+    const includeTrainDetails = p.get("with_trains") === "1"
     let lastError: any = null
     for (let attempt = 0; attempt < 3; attempt++) {
-      const { data, error } = await getSupabaseServer().from("train_shifts").select(select).eq("shift_date", date).order("train_number", { ascending: true })
+      const { data, error } = await getSupabaseServer().from("train_shifts").select("*").eq("shift_date", date).order("train_number", { ascending: true })
       if (!error) {
-        const rows = (data ?? []).map((r: any) => r.trains ? { ...r, ...r.trains, trains: undefined } : r)
+        let rows = data ?? []
+        if (includeTrainDetails && rows.length > 0) {
+          const trainIds = rows.map((row: any) => row.train_id).filter(Boolean)
+          const { data: trains } = await getSupabaseServer().from("trains").select("id,direction,class,depart_depot,depart_start,arrive_middle,depart_middle,arrive_end,arrive_depot,platform_start,platform_middle,platform_end").in("id", trainIds)
+          const trainsById = new Map((trains ?? []).map((train: any) => [train.id, train]))
+          rows = rows.map((row: any) => ({ ...row, ...(trainsById.get(row.train_id) ?? {}) }))
+        }
         return NextResponse.json({ data: rows }, { headers: corsHeaders() })
       }
       lastError = error
