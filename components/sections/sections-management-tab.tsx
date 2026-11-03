@@ -129,7 +129,7 @@ export function SectionsManagementTab({ currentUser }: Props) {
   return (
     <div className="space-y-3">
       {/* Header */}
-      <div className="relative flex items-center gap-3 pb-3 border-b" style={{ borderColor: tieColor + "40" }}>
+      <div className="flex items-center gap-3 pb-3 border-b" style={{ borderColor: tieColor + "40" }}>
         <div className="p-3 rounded-xl" style={{ background: `linear-gradient(135deg, ${tieColor}20, ${tieColor}10)` }}>
           <Layers className="w-6 h-6" style={{ color: tieColor }} />
         </div>
@@ -137,7 +137,7 @@ export function SectionsManagementTab({ currentUser }: Props) {
           <h2 className="text-3xl font-bold" style={{ color: tieColor }}>Управление разделами</h2>
           <p className={`text-sm ${textMuted}`}>Создание, редактирование и видимость разделов</p>
         </div>
-        <div className="absolute left-1/2 top-0 -translate-x-1/2 flex gap-2">
+        <div className="ml-auto flex gap-2">
           <Button variant="outline" size="sm" onClick={() => load(true)} disabled={refreshing}
             className={`h-8 px-3 text-xs ${isDark ? "border-white/10 bg-transparent text-white hover:bg-white/5" : "border-gray-200 bg-transparent text-black hover:bg-gray-50"}`}>
             <RefreshCw className={`w-3 h-3 mr-1.5 ${refreshing ? "animate-spin" : ""}`} />
@@ -248,7 +248,7 @@ export function SectionsManagementTab({ currentUser }: Props) {
       <div className={`rounded-xl border ${border} p-3 flex gap-2`} style={{ backgroundColor: tieColor + "0d" }}>
         <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: tieColor }} />
         <p className={`text-xs leading-relaxed ${textMuted}`}>
-          Новые разделы по умолчанию <strong style={{ color: tieColor }}>скрыты</strong> и видны только тех. администраторам. Сделайте раздел видимым через иконку глаза или в настройках доступа раздела.
+          Новые разделы по умолчанию <strong style={{ color: tieColor }}>скрыты</strong> и видны только тех. администраторам. Сделайте раздел видимым через иконку гла��а или в настройках доступа раздела.
         </p>
       </div>
 
