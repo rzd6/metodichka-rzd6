@@ -1,21 +1,35 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Check, Clipboard, Clock3, ImageIcon, ShieldCheck, Truck } from "lucide-react"
 import { clipboardCopy } from "@/lib/clipboard"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { useTheme } from "@/contexts/theme-context"
 import { getThemeColor } from "@/lib/theme-utils"
 import { getMiniTaskTemplate, LOADING_UNLOADING_PHOTO, MINI_TASKS, MINI_TASK_RULES } from "@/data/mini-tasks"
+import { getEffectiveReportTag } from "@/data/users"
+import { Input } from "@/components/ui/input"
 
 export function MiniTasksSection() {
   const { theme } = useTheme()
   const tieColor = getThemeColor(theme.colorTheme)
   const isDark = theme.mode === "dark"
   const [copiedLine, setCopiedLine] = useState<string | null>(null)
+  const [reportTag, setReportTag] = useState("[ТЭГ]")
+  const [port, setPort] = useState("Невского")
+  const [helperName, setHelperName] = useState("")
   const textColor = isDark ? "text-white" : "text-gray-900"
   const mutedColor = isDark ? "text-white/65" : "text-gray-600"
   const surface = isDark ? "border-white/10 bg-[#0f1419]/60" : "border-gray-200 bg-white/90"
+
+  useEffect(() => {
+    try {
+      const userData = JSON.parse(localStorage.getItem("currentUser") || "null")
+      if (userData) setReportTag(getEffectiveReportTag(userData))
+    } catch {
+      setReportTag("[ТЭГ]")
+    }
+  }, [])
 
   const copyLine = (lineId: string, line: string) => {
     clipboardCopy(line)
@@ -81,8 +95,24 @@ export function MiniTasksSection() {
           <h2 className={`text-xl font-bold ${textColor}`}>Список мини-заданий</h2>
           <p className={`mt-1 text-sm ${mutedColor}`}>Выберите поставку, чтобы открыть маршрут и RP-шаблон.</p>
         </div>
+        <Card className={`rounded-2xl p-4 ${surface}`}>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className={`space-y-1.5 text-sm font-medium ${textColor}`}>
+              Порт для поставки формы
+              <select value={port} onChange={(event) => setPort(event.target.value)} className={`w-full rounded-lg border px-3 py-2 ${isDark ? "border-white/15 bg-[#111820]" : "border-gray-300 bg-white"}`}>
+                <option value="Невского">Невского</option>
+                <option value="Приволжска">Приволжска</option>
+              </select>
+            </label>
+            <label className={`space-y-1.5 text-sm font-medium ${textColor}`}>
+              Имя и фамилия помощника <span className={`font-normal ${mutedColor}`}>(необязательно)</span>
+              <Input value={helperName} onChange={(event) => setHelperName(event.target.value)} placeholder="Например, Иван Иванов" />
+            </label>
+          </div>
+          <p className={`mt-3 text-xs ${mutedColor}`}>Тэг рации подставляется автоматически: <code className="font-mono">{reportTag}</code>. Строки шаблона можно нажимать для копирования.</p>
+        </Card>
         {MINI_TASKS.map((task, index) => {
-          const templateLines = getMiniTaskTemplate(task).split("\n")
+          const templateLines = getMiniTaskTemplate(task, { reportTag, port, helperName }).split("\n")
           const sectionHeadings = new Set(["Отправление:", "Прибытие на место загрузки:", "Погрузка:", "Возвращение:", "Разгрузка:", "Прибытие в РЖД:"])
           return (
             <details key={task.id} className={`group overflow-hidden rounded-2xl border ${surface}`}>

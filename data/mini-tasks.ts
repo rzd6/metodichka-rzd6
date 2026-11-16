@@ -73,8 +73,13 @@ export const MINI_TASK_RULES = [
 
 export const LOADING_UNLOADING_PHOTO = "https://i.imgur.com/uU3s5Qz.jpeg"
 
-export function getMiniTaskTemplate(task: MiniTask) {
+export function getMiniTaskTemplate(task: MiniTask, options: { reportTag?: string; port?: string; helperName?: string } = {}) {
   const isContainer = task.loadingArea === "container"
+  const destination = task.id === "uniform" && options.port ? `городской порт ${options.port}` : task.destination
+  const reportTag = options.reportTag || "[ТЭГ]"
+  const helper = options.helperName?.trim()
+  const helperLine = helper ? ` Напарник: ${helper}.` : ""
+  const replaceCommon = (line: string) => line.replaceAll("[ТЭГ]", reportTag).replaceAll("Напарник: Имя Фамилия (если имеется).", helperLine.trim())
   const storageName = isContainer ? "Контейнер" : "Гараж"
   const openStorage = isContainer ? "открыл контейнер" : "открыл гараж"
   const closeStorage = isContainer ? "закрыл контейнер" : "закрыл гараж"
@@ -83,10 +88,10 @@ export function getMiniTaskTemplate(task: MiniTask) {
   return [
     "Отправление:",
     `r [ТЭГ] Заняли ЗИЛ для ${task.title.toLowerCase().replace(/^поставка/, "поставки")}.`,
-    `r [ТЭГ] Отправляемся в ${task.destination}. Напарник: Имя Фамилия (если имеется).`,
+    `r [ТЭГ] Отправляемся в ${destination}. Напарник: Имя Фамилия (если имеется).`,
     "",
     "Прибытие на место загрузки:",
-    `r [ТЭГ] Прибыли в ${task.destination}. Начинаем погрузку. Напарник: Имя Фамилия (если имеется).`,
+    `r [ТЭГ] Прибыли в ${destination}. Начинаем погрузку. Напарник: Имя Фамилия (если имеется).`,
     "",
     "Погрузка:",
     `do ${cargoCount} в ${task.loadingLocation}.`,
@@ -111,5 +116,5 @@ export function getMiniTaskTemplate(task: MiniTask) {
     "",
     "Прибытие в РЖД:",
     'r [ТЭГ] Прибыли в здание РЖД. Разгрузка окончена. Напарник: Имя Фамилия (если имеется).',
-  ].join("\n")
+  ].map(replaceCommon).join("\n")
 }
