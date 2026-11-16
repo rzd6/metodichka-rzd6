@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { Check, Clipboard, Clock3, ImageIcon, ShieldCheck, Truck } from "lucide-react"
+import { clipboardCopy } from "@/lib/clipboard"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { useTheme } from "@/contexts/theme-context"
 import { getThemeColor } from "@/lib/theme-utils"
@@ -11,20 +12,15 @@ export function MiniTasksSection() {
   const { theme } = useTheme()
   const tieColor = getThemeColor(theme.colorTheme)
   const isDark = theme.mode === "dark"
-  const [copiedTask, setCopiedTask] = useState<string | null>(null)
+  const [copiedLine, setCopiedLine] = useState<string | null>(null)
   const textColor = isDark ? "text-white" : "text-gray-900"
   const mutedColor = isDark ? "text-white/65" : "text-gray-600"
   const surface = isDark ? "border-white/10 bg-[#0f1419]/60" : "border-gray-200 bg-white/90"
 
-  const copyTemplate = async (taskId: string, template: string) => {
-    try {
-      await navigator.clipboard.writeText(template)
-      setCopiedTask(taskId)
-      window.setTimeout(() => setCopiedTask((current) => current === taskId ? null : current), 1800)
-    } catch {
-      setCopiedTask(`error-${taskId}`)
-      window.setTimeout(() => setCopiedTask(null), 2500)
-    }
+  const copyLine = (lineId: string, line: string) => {
+    clipboardCopy(line)
+    setCopiedLine(lineId)
+    window.setTimeout(() => setCopiedLine((current) => current === lineId ? null : current), 1800)
   }
 
   return (
@@ -86,9 +82,8 @@ export function MiniTasksSection() {
           <p className={`mt-1 text-sm ${mutedColor}`}>Выберите поставку, чтобы открыть маршрут и RP-шаблон.</p>
         </div>
         {MINI_TASKS.map((task, index) => {
-          const template = getMiniTaskTemplate(task)
-          const copied = copiedTask === task.id
-          const copyError = copiedTask === `error-${task.id}`
+          const templateLines = getMiniTaskTemplate(task).split("\n")
+          const sectionHeadings = new Set(["Отправление:", "Прибытие на место загрузки:", "Погрузка:", "Возвращение:", "Разгрузка:", "Прибытие в РЖД:"])
           return (
             <details key={task.id} className={`group overflow-hidden rounded-2xl border ${surface}`}>
               <summary className="flex cursor-pointer list-none items-center gap-3 p-4 focus-visible:outline-none focus-visible:ring-2" style={{ outlineColor: tieColor }}>
@@ -101,19 +96,36 @@ export function MiniTasksSection() {
                 <span className={`hidden text-xs ${mutedColor} group-open:inline`}>Скрыть</span>
               </summary>
               <div className="border-t border-white/10 p-4" style={{ borderColor: `${tieColor}30` }}>
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <h3 className={`font-semibold ${textColor}`}>Порядок выполнения</h3>
-                    <p className={`mt-1 text-sm ${mutedColor}`}>Отправление → загрузка → возвращение → разгрузка → прибытие в РЖД.</p>
-                  </div>
-                  <button type="button" onClick={() => copyTemplate(task.id, template)} className="inline-flex min-h-10 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-white focus-visible:outline-none focus-visible:ring-2 disabled:opacity-60" style={{ backgroundColor: tieColor }}>
-                    {copied ? <Check className="size-4" aria-hidden="true" /> : <Clipboard className="size-4" aria-hidden="true" />}
-                    {copied ? "Скопировано" : "Скопировать RP-шаблон"}
-                  </button>
+                <div>
+                  <h3 className={`font-semibold ${textColor}`}>Порядок выполнения</h3>
+                  <p className={`mt-1 text-sm ${mutedColor}`}>Отправление → загрузка → возвращение → разгрузка → прибытие в РЖД.</p>
                 </div>
-                {copyError && <p role="status" className="mt-2 text-sm text-amber-500">Не удалось скопировать. Разрешите доступ к буферу обмена и попробуйте ещё раз.</p>}
-                <pre className={`mt-4 max-h-[460px] overflow-auto whitespace-pre-wrap rounded-xl border p-4 font-mono text-xs leading-6 ${isDark ? "border-white/10 bg-black/30 text-white/80" : "border-gray-200 bg-gray-50 text-gray-800"}`}>{template}</pre>
-                <p role="status" aria-live="polite" className="sr-only">{copied ? "RP-шаблон скопирован" : ""}</p>
+                <div className="mt-4 flex flex-col gap-2">
+                  {templateLines.map((line, lineIndex) => {
+                    if (!line) return <div key={`${task.id}-${lineIndex}`} className="h-2" aria-hidden="true" />
+                    if (sectionHeadings.has(line)) {
+                      return <h4 key={`${task.id}-${lineIndex}`} className={`pt-2 text-sm font-semibold ${textColor}`}>{line}</h4>
+                    }
+                    const lineId = `${task.id}-${lineIndex}`
+                    const isCopied = copiedLine === lineId
+                    return (
+                      <button
+                        key={lineId}
+                        type="button"
+                        onClick={() => copyLine(lineId, line)}
+                        aria-label={`${isCopied ? "Скопировано:" : "Скопировать строку:"} ${line}`}
+                        className={`group flex w-full items-start justify-between gap-4 rounded-xl border p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 ${isDark ? "border-white/10 bg-black/20 hover:border-white/30" : "border-gray-200 bg-gray-50 hover:border-gray-300"}`}
+                        style={{ borderLeftWidth: "4px", borderLeftColor: isCopied ? "#22c55e" : tieColor }}
+                      >
+                        <code className={`flex-1 whitespace-pre-wrap font-mono text-xs leading-6 ${isDark ? "text-white/90" : "text-gray-900"}`}>{line}</code>
+                        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: isCopied ? "#22c55e20" : `${tieColor}20` }}>
+                          {isCopied ? <Check className="size-4 text-green-500" aria-hidden="true" /> : <Clipboard className="size-4 opacity-70 group-hover:opacity-100" style={{ color: tieColor }} aria-hidden="true" />}
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+                <p role="status" aria-live="polite" className="sr-only">{copiedLine?.startsWith(`${task.id}-`) ? "Строка доклада скопирована" : ""}</p>
               </div>
             </details>
           )
