@@ -14,7 +14,7 @@ import {
   Terminal,
   Bell,
   FlaskConical,
-  PackageOpen,
+  Truck,
 } from "lucide-react"
 import { useState, useEffect, useCallback } from "react"
 import { SettingsModal } from "@/components/settings-modal"
@@ -482,7 +482,7 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed, setIsColl
         <circle cx="16" cy="16" r="1.5" fill={getIconColor(isActive)} />
       </svg>
     ),
-    "mini-tasks": (isActive) => <PackageOpen className="size-5" style={{ color: getIconColor(isActive) }} />,
+    "mini-tasks": (isActive) => <Truck className="size-5" style={{ color: getIconColor(isActive) }} />,
     "train-schedule": (isActive) => (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <rect x="2" y="7" width="20" height="11" rx="2" stroke={getIconColor(isActive)} strokeWidth="2" />

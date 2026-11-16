@@ -9,6 +9,7 @@ import { getThemeColor } from "@/lib/theme-utils"
 import { getMiniTaskTemplate, LOADING_UNLOADING_PHOTO, MINI_TASKS, MINI_TASK_RULES } from "@/data/mini-tasks"
 import { getEffectiveReportTag } from "@/data/users"
 import { Input } from "@/components/ui/input"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 
 export function MiniTasksSection() {
   const { theme } = useTheme()
@@ -111,21 +112,23 @@ export function MiniTasksSection() {
           </div>
           <p className={`mt-3 text-xs ${mutedColor}`}>Тэг рации подставляется автоматически: <code className="font-mono">{reportTag}</code>. Строки шаблона можно нажимать для копирования.</p>
         </Card>
+        <Accordion type="single" collapsible className="flex flex-col gap-3">
         {MINI_TASKS.map((task, index) => {
           const templateLines = getMiniTaskTemplate(task, { reportTag, port, helperName }).split("\n")
           const sectionHeadings = new Set(["Отправление:", "Прибытие на место загрузки:", "Погрузка:", "Возвращение:", "Разгрузка:", "Прибытие в РЖД:"])
+          const destination = task.id === "uniform" ? `городской порт ${port}` : task.destination
           return (
-            <details key={task.id} className={`group overflow-hidden rounded-2xl border ${surface}`}>
-              <summary className="flex cursor-pointer list-none items-center gap-3 p-4 focus-visible:outline-none focus-visible:ring-2" style={{ outlineColor: tieColor }}>
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-xl text-sm font-bold text-white" style={{ backgroundColor: tieColor }}>{index + 1}</span>
-                <span className="min-w-0 flex-1">
-                  <span className={`block font-semibold ${textColor}`}>{task.title}</span>
-                  <span className={`mt-0.5 block text-xs ${mutedColor}`}>{task.cargo} · {task.destination}</span>
+            <AccordionItem key={task.id} value={task.id} className={`overflow-hidden rounded-2xl border ${surface}`}>
+              <AccordionTrigger className="px-4 py-4 hover:no-underline sm:px-5">
+                <span className="flex min-w-0 items-center gap-3 text-left">
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-xl text-sm font-bold text-white" style={{ backgroundColor: tieColor }}>{index + 1}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className={`block font-semibold ${textColor}`}>{task.title}</span>
+                    <span className={`mt-0.5 block text-xs ${mutedColor}`}>{task.cargo} · {destination}</span>
+                  </span>
                 </span>
-                <span className={`text-xs ${mutedColor} group-open:hidden`}>Показать</span>
-                <span className={`hidden text-xs ${mutedColor} group-open:inline`}>Скрыть</span>
-              </summary>
-              <div className="border-t border-white/10 p-4" style={{ borderColor: `${tieColor}30` }}>
+              </AccordionTrigger>
+              <AccordionContent className="border-t p-4 sm:px-5" style={{ borderColor: `${tieColor}30` }}>
                 <div>
                   <h3 className={`font-semibold ${textColor}`}>Порядок выполнения</h3>
                   <p className={`mt-1 text-sm ${mutedColor}`}>Отправление → загрузка → возвращение → разгрузка → прибытие в РЖД.</p>
@@ -156,10 +159,11 @@ export function MiniTasksSection() {
                   })}
                 </div>
                 <p role="status" aria-live="polite" className="sr-only">{copiedLine?.startsWith(`${task.id}-`) ? "Строка доклада скопирована" : ""}</p>
-              </div>
-            </details>
+              </AccordionContent>
+            </AccordionItem>
           )
         })}
+        </Accordion>
       </div>
     </section>
   )
