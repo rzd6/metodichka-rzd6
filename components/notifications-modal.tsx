@@ -16,6 +16,7 @@ interface NotificationsModalProps {
   onOpenChange: (open: boolean) => void
   userRole: UserRole
   secondaryRole?: string
+  refreshKey?: string
 }
 
 function RoleBadgeIcon({ role, color }: { role: string; color: string }) {
@@ -40,7 +41,7 @@ const ROLE_AVATARS: Record<string, string> = {
   ПТО: "/avatars/pto.png",
 }
 
-export function NotificationsModal({ open, onOpenChange, userRole, secondaryRole }: NotificationsModalProps) {
+export function NotificationsModal({ open, onOpenChange, userRole, secondaryRole, refreshKey }: NotificationsModalProps) {
   const { theme } = useTheme()
   const [articles, setArticles] = useState<Article[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -86,7 +87,7 @@ export function NotificationsModal({ open, onOpenChange, userRole, secondaryRole
         setArticles([])
       })
       .finally(() => setIsLoading(false))
-  }, [open, userRole])
+  }, [open, userRole, secondaryRole, refreshKey])
 
   const getAuthorBlock = (article: Article) => {
     const isFaction = article.author_name === "Группа РЖД"

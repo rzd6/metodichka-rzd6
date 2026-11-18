@@ -17,6 +17,7 @@ import {
   Truck,
 } from "lucide-react"
 import { useState, useEffect, useCallback } from "react"
+import useSWR from "swr"
 import { SettingsModal } from "@/components/settings-modal"
 import { NotificationsModal } from "@/components/notifications-modal"
 import { useTheme } from "@/contexts/theme-context"
@@ -189,6 +190,16 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed, setIsColl
   const isTechAdmin = user.role === "Тех. Администратор" || user.secondaryRole === "Тех. Администратор"
 
   const [displayTag, setDisplayTag] = useState("")
+  const { data: vkNewsSync } = useSWR(
+    user?.id ? "/api/vk/news/sync" : null,
+    async (url: string) => {
+      const response = await fetch(url, { method: "POST" })
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.error || "Не удалось обновить новости ВК")
+      return result as { checkedAt?: string; imported?: number }
+    },
+    { refreshInterval: 5 * 60 * 1000, revalidateOnFocus: true, dedupingInterval: 60 * 1000 },
+  )
 
   const loadBuiltinOverrides = useCallback(async () => {
     const data = await getBuiltinOverrides()
@@ -269,7 +280,7 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed, setIsColl
       }
     }
     fetchUnread()
-  }, [user.role, user.id, user.nickname])
+  }, [user.role, user.secondaryRole, user.id, user.nickname, vkNewsSync?.checkedAt])
 
   const getIconColor = (isActive: boolean) => {
     if (isActive) {
@@ -807,7 +818,7 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed, setIsColl
       </aside>
 
       <SettingsModal open={showSettings} onOpenChange={setShowSettings} initialTab={settingsInitialTab} onRestartOnboarding={() => { setShowSettings(false); window.dispatchEvent(new Event("restartOnboarding")) }} />
-      <NotificationsModal open={showNotifications} onOpenChange={setShowNotifications} userRole={user.role} secondaryRole={user.secondaryRole} />
+      <NotificationsModal open={showNotifications} onOpenChange={setShowNotifications} userRole={user.role} secondaryRole={user.secondaryRole} refreshKey={vkNewsSync?.checkedAt} />
     </>
   )
 }
