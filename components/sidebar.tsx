@@ -740,7 +740,7 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed, setIsColl
             <div className={`flex gap-2 ${isCollapsed ? "flex-col" : ""}`}>
                 <Button
                   variant="outline"
-                  className={`flex-1 bg-transparent ${getTextColor()} hover:${getTextColor()} border-white/20 hover:border-white/40 h-9 px-2`}
+                  className={`relative flex-1 bg-transparent ${getTextColor()} hover:${getTextColor()} border-white/20 hover:border-white/40 h-9 px-2`}
                   onClick={handleOpenNotifications}
                   data-tour="notifications"
                   title="Уведомления"
