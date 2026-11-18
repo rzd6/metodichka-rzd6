@@ -42,6 +42,12 @@ export async function GET(req: NextRequest) {
             })
             if (response.ok) {
               const html = await response.text()
+              for (const photoField of ["photo_max_orig", "photo_200", "photo_100"]) {
+                const embeddedPhoto = html.match(new RegExp(`\\"${photoField}\\"\\s*:\\s*\\"([^\\"]+)\\"`, "i"))?.[1]
+                if (!embeddedPhoto) continue
+                const photo = embeddedPhoto.replaceAll("\\u0026", "&").replace(/&amp;/g, "&").replaceAll("\\/", "/")
+                if (/^https?:\/\//i.test(photo)) return photo
+              }
               const metaTags = html.match(/<meta\b[^>]*>/gi) ?? []
               for (const tag of metaTags) {
                 if (!/property=[\"']og:image[\"']/i.test(tag)) continue
@@ -49,11 +55,6 @@ export async function GET(req: NextRequest) {
                 if (photo && /^https?:\/\//i.test(photo)) {
                   return photo.replace(/&amp;/g, "&").replaceAll("\\u0026", "&").replaceAll("\\/", "/")
                 }
-              }
-              const embeddedPhoto = html.match(/\"photo_(?:max_orig|200|100)\"\s*:\s*\"([^\"]+)\"/i)?.[1]
-              if (embeddedPhoto) {
-                const photo = embeddedPhoto.replaceAll("\\u0026", "&").replace(/&amp;/g, "&").replaceAll("\\/", "/")
-                if (/^https?:\/\//i.test(photo)) return photo
               }
               return null
             }

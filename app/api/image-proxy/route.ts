@@ -7,7 +7,13 @@ const ALLOWED_HOSTS = [
   "ibb.co",
   "i.imgbb.com",
   "vkuserphoto.ru",
+  "userapi.com",
+  "vk.com",
 ]
+
+function isAllowedImageHost(hostname: string) {
+  return ALLOWED_HOSTS.some((host) => hostname === host || hostname.endsWith(`.${host}`))
+}
 
 export async function GET(req: NextRequest) {
   const url = req.nextUrl.searchParams.get("url")
@@ -22,7 +28,7 @@ export async function GET(req: NextRequest) {
     return new NextResponse("Invalid url", { status: 400 })
   }
 
-  if (!ALLOWED_HOSTS.includes(parsed.hostname)) {
+  if (parsed.protocol !== "https:" || parsed.username || parsed.password || !isAllowedImageHost(parsed.hostname)) {
     return new NextResponse("Host not allowed", { status: 403 })
   }
 
