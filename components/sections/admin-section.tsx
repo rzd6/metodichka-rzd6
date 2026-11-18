@@ -42,7 +42,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import Image from "next/image"
-import { proxyImageUrl } from "@/lib/image-proxy"
 import { getThemeColor } from "@/lib/theme-utils"
 import { getAvatarFilterFromColor } from "@/lib/color-utils"
 
@@ -581,7 +580,7 @@ export function AdminSection() {
 
   const getUserAvatar = (role: User["role"], avatar?: string) => {
     const fallbackSrc = getAvatarForRole(role) || "/placeholder.svg"
-    const src = proxyImageUrl(avatar || fallbackSrc)
+    const src = avatar || fallbackSrc
     const isCustom = !!avatar
     return (
       <div
@@ -833,7 +832,7 @@ export function AdminSection() {
       ) : usersError ? (
         <div className={`flex items-center gap-3 p-4 rounded-xl border ${theme.mode === "dark" ? "bg-red-900/20 border-red-500/30 text-red-400" : "bg-red-50 border-red-200 text-red-600"}`}>
           <div className="w-2 h-2 rounded-full bg-current flex-shrink-0" />
-          <p className="text-sm">Не удалось подключиться к базе данных. Проверьте соединение и попробуйте обновить страницу.</p>
+          <p className="text-sm">Не удалось подключить��я к базе данных. Проверьте соединение и попробуйте обновить страницу.</p>
         </div>
       ) : (
         <>

@@ -29,6 +29,24 @@ export async function GET(req: NextRequest) {
         }
       }
       const fetchPublicPhoto = async (vkId: string): Promise<string | null> => {
+        const token = process.env.VK_SERVICE_TOKEN
+        if (token) {
+          try {
+            const apiUrl = new URL("https://api.vk.com/method/users.get")
+            apiUrl.searchParams.set("user_ids", vkId)
+            apiUrl.searchParams.set("fields", "photo_max_orig,photo_200")
+            apiUrl.searchParams.set("access_token", token)
+            apiUrl.searchParams.set("v", "5.199")
+            const apiResponse = await fetch(apiUrl, { cache: "no-store", signal: AbortSignal.timeout(7000) })
+            if (apiResponse.ok) {
+              const apiData = await apiResponse.json()
+              const photo = apiData.response?.[0]?.photo_max_orig || apiData.response?.[0]?.photo_200
+              if (photo && /^https:\/\//i.test(photo)) return photo
+            }
+          } catch {
+            // Fall back to the public profile page if the VK API is unavailable.
+          }
+        }
         const profileUrl = `https://vk.com/id${encodeURIComponent(vkId)}`
         for (let attempt = 0; attempt < 3; attempt++) {
           try {
