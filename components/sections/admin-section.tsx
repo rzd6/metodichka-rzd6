@@ -96,17 +96,17 @@ export function AdminSection() {
   const vkDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const newVkDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const loadUsers = useCallback(async (silent = false) => {
+  const loadUsers = useCallback(async (silent = false, refreshVk = false) => {
     if (!silent) setIsLoading(true)
     else setIsRefreshing(true)
     if (!silent) setUsersError(false)
   try {
   await fetch("/api/sync-from-sheets", { cache: "no-store" }).catch(() => undefined)
-  const res = await fetch("/api/users?hydrate_vk=1", { headers: { "Content-Type": "application/json" }, cache: "no-store" })
+      const res = await fetch(`/api/users?hydrate_vk=1${refreshVk ? "&refresh_vk=1" : ""}`, { headers: { "Content-Type": "application/json" }, cache: "no-store" })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const json = await res.json()
       if (!Array.isArray(json.data)) throw new Error("no data")
-      const loadedUsers = await getAllUsers(silent)
+      const loadedUsers = await getAllUsers(true)
       const sortedUsers = sortUsersByRole(loadedUsers)
       setUsers(sortedUsers)
     } catch {
@@ -579,7 +579,8 @@ export function AdminSection() {
   }
 
   const getUserAvatar = (role: User["role"], avatar?: string) => {
-    const src = avatar || getAvatarForRole(role) || "/placeholder.svg"
+    const fallbackSrc = getAvatarForRole(role) || "/placeholder.svg"
+    const src = avatar || fallbackSrc
     const isCustom = !!avatar
     return (
       <div
@@ -588,11 +589,17 @@ export function AdminSection() {
       >
         <Image
           src={src}
-          alt={role}
+          alt={`Аватар: ${role}`}
           width={48}
           height={48}
-          className="w-full h-full object-cover object-center scale-110"
+          className="h-full w-full object-cover object-center"
           style={isCustom ? undefined : { filter: getAvatarFilter() }}
+          onError={(event) => {
+            const image = event.currentTarget
+            if (image.dataset.fallbackApplied) return
+            image.dataset.fallbackApplied = "true"
+            image.src = fallbackSrc
+          }}
         />
       </div>
     )
@@ -797,7 +804,7 @@ export function AdminSection() {
             onClick={async () => {
               setIsRefreshing(true)
               await fetch("/api/sync-from-sheets").catch(() => {})
-              await loadUsers(true)
+              await loadUsers(true, true)
             }}
             disabled={isRefreshing || isLoading}
             className={`h-8 px-3 text-xs ${theme.mode === "dark"
@@ -825,7 +832,7 @@ export function AdminSection() {
       ) : usersError ? (
         <div className={`flex items-center gap-3 p-4 rounded-xl border ${theme.mode === "dark" ? "bg-red-900/20 border-red-500/30 text-red-400" : "bg-red-50 border-red-200 text-red-600"}`}>
           <div className="w-2 h-2 rounded-full bg-current flex-shrink-0" />
-          <p className="text-sm">Не удалось подключиться к базе данных. Проверьте соединение и попробуйте обновить страницу.</p>
+          <p className="text-sm">Не удалось подключить��я к базе данных. Проверьте соединение и попробуйте обновить страницу.</p>
         </div>
       ) : (
         <>

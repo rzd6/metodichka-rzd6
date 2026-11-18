@@ -13,6 +13,8 @@ const PROXIED_HOSTS = [
   "ibb.co",
   "i.imgbb.com",
   "vkuserphoto.ru",
+  "userapi.com",
+  "vk.com",
 ]
 
 export function proxyImageUrl(url: string | null | undefined): string {
@@ -22,7 +24,7 @@ export function proxyImageUrl(url: string | null | undefined): string {
 
   try {
     const parsed = new URL(url)
-    if (PROXIED_HOSTS.includes(parsed.hostname)) {
+    if (PROXIED_HOSTS.some((host) => parsed.hostname === host || parsed.hostname.endsWith(`.${host}`))) {
       return `/api/image-proxy?url=${encodeURIComponent(url)}`
     }
   } catch {

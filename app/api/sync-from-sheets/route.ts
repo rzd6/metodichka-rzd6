@@ -296,13 +296,24 @@ export async function GET() {
 
     console.log("[sync-from-sheets] step: spreadsheets.get")
     // Use spreadsheets.get with includeGridData so we can read hyperlink URLs from cells
-    const response = await sheetsApi.spreadsheets.get({
-      spreadsheetId: SPREADSHEET_ID,
-      includeGridData: true,
-      // Request only the first sheet, columns A-P, all rows
-      ranges: ["A:P"],
-      fields: "sheets(data(rowData(values(formattedValue,userEnteredValue,hyperlink))))",
-    })
+    let response
+    for (let attempt = 0; ; attempt++) {
+      try {
+        response = await sheetsApi.spreadsheets.get({
+          spreadsheetId: SPREADSHEET_ID,
+          includeGridData: true,
+          // Request only the first sheet, columns A-P, all rows
+          ranges: ["A:P"],
+          fields: "sheets(data(rowData(values(formattedValue,userEnteredValue,hyperlink))))",
+        })
+        break
+      } catch (error: any) {
+        const status = error?.response?.status ?? error?.code
+        const transient = status === 429 || typeof status === "number" && status >= 500 || ["ECONNRESET", "ETIMEDOUT", "EAI_AGAIN"].includes(String(status))
+        if (!transient || attempt >= 2) throw error
+        await new Promise((resolve) => setTimeout(resolve, 400 * (attempt + 1)))
+      }
+    }
     console.log("[sync-from-sheets] step: spreadsheets.get OK, sheets count:", response.data.sheets?.length)
 
     const firstSheet = response.data.sheets?.[0]
@@ -320,12 +331,12 @@ export async function GET() {
 
     // Fetch all existing users (columns we need)
     console.log("[sync-from-sheets] step: SELECT users")
-    const { data: dbUsers, error: usersError } = await db.from("users").select("id,username,position,secondary_role,position_title,absent_since,vk_id")
+    const { data: dbUsers, error: usersError } = await db.from("users").select("id,username,position,secondary_role,position_title,medical_card,absent_since,vk_id")
     if (usersError) throw usersError
     console.log("[sync-from-sheets] db users count:", dbUsers.length)
 
     // Index by nickname (username column in DB)
-    const dbByNickname = new Map<string, { id: string; position: string | null; secondary_role: string | null; position_title: string | null; absent_since: string | null; vk_id: string | null }>()
+    const dbByNickname = new Map<string, { id: string; position: string | null; secondary_role: string | null; position_title: string | null; medical_card: string | null; absent_since: string | null; vk_id: string | null }>()
     for (const u of dbUsers) dbByNickname.set(u.username, u)
 
     const sheetNicknames = new Set(sheetEmployees.map((e) => e.nickname))
@@ -360,7 +371,12 @@ export async function GET() {
         const newLabel = emp.position || emp.role
 
         const updatePayload: any = { position: emp.role, rank: emp.rank, position_title: emp.position, medical_card: emp.medicalCard || null, updated_at: new Date().toISOString() }
-        if (emp.vkId && !existing.vk_id) updatePayload.vk_id = emp.vkId
+        const profileDataChanged = existing.position !== emp.role || existing.position_title !== emp.position || existing.medical_card !== (emp.medicalCard || null)
+        if (profileDataChanged) updatePayload.vk_avatar = null
+        if (emp.vkId && emp.vkId !== existing.vk_id) {
+          updatePayload.vk_id = emp.vkId
+          updatePayload.vk_avatar = null
+        }
         const { error: updateError } = await db.from("users").update(updatePayload).eq("id", existing.id)
         if (updateError) throw updateError
         stats.updated++

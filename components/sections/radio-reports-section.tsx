@@ -25,6 +25,8 @@ export function RadioReportsSection({ userRole, secondaryRole }: RadioReportsSec
   const [userGender, setUserGender] = useState<UserGender>("male")
   const [fillMode, setFillMode] = useState(false)
   const [filledReports, setFilledReports] = useState<{ [key: string]: string }>({})
+  const [crossingName, setCrossingName] = useState("")
+  const [stationName, setStationName] = useState("")
 
   useEffect(() => {
     const authData = localStorage.getItem("currentUser")
@@ -736,7 +738,14 @@ export function RadioReportsSection({ userRole, secondaryRole }: RadioReportsSec
                         {section.reports.map((report, reportIndex) => {
                           const copyId = `${rankKey}-${sectionIndex}-${reportIndex}`
                           const colorClass = theme.mode === "dark" ? "text-blue-400" : "text-blue-600"
-                          return <div key={reportIndex}>{renderReportItem(report, copyId, colorClass)}</div>
+                        const location = sectionIndex === 0 ? crossingName.trim() : stationName.trim()
+                        const preparedReport = {
+                          ...report,
+                          text: sectionIndex === 0
+                            ? report.text.replace(/\*название\*/gi, location || "*название*")
+                            : report.text.replace(/\*Мирного\/Невского\/Приволжска\*/g, location || "*Мирного/Невского/Приволжска*"),
+                        }
+                        return <div key={reportIndex}>{renderReportItem(preparedReport, copyId, colorClass)}</div>
                         })}
                       </div>
                     </div>
@@ -764,6 +773,17 @@ export function RadioReportsSection({ userRole, secondaryRole }: RadioReportsSec
               </div>
             </CardHeader>
             <CardContent className="pt-6">
+              <div className={`mb-6 grid gap-4 rounded-xl border p-4 sm:grid-cols-2 ${theme.mode === "dark" ? "border-white/10 bg-white/5" : "border-gray-200 bg-gray-50"}`}>
+                <label className={`space-y-1.5 text-sm font-medium ${theme.mode === "dark" ? "text-white" : "text-gray-900"}`}>
+                  Название переезда
+                  <input value={crossingName} onChange={(event) => setCrossingName(event.target.value)} placeholder="Например, переезд № 12" className={`w-full rounded-lg border px-3 py-2 ${theme.mode === "dark" ? "border-white/15 bg-[#111820] text-white" : "border-gray-300 bg-white text-gray-900"}`} />
+                </label>
+                <label className={`space-y-1.5 text-sm font-medium ${theme.mode === "dark" ? "text-white" : "text-gray-900"}`}>
+                  Название станции
+                  <input value={stationName} onChange={(event) => setStationName(event.target.value)} placeholder="Например, Мирного" className={`w-full rounded-lg border px-3 py-2 ${theme.mode === "dark" ? "border-white/15 bg-[#111820] text-white" : "border-gray-300 bg-white text-gray-900"}`} />
+                </label>
+                <p className={`text-xs sm:col-span-2 ${theme.mode === "dark" ? "text-white/60" : "text-gray-500"}`}>Указанные названия автоматически появятся в докладах и скопированном тексте.</p>
+              </div>
               <div className="space-y-6">
                 {dutyReports.sections.map((section, sectionIndex) => (
                   <div key={sectionIndex} className="space-y-3">
@@ -774,7 +794,14 @@ export function RadioReportsSection({ userRole, secondaryRole }: RadioReportsSec
                       {section.reports.map((report, reportIndex) => {
                         const copyId = `duty-${sectionIndex}-${reportIndex}`
                         const colorClass = theme.mode === "dark" ? "text-yellow-400" : "text-yellow-600"
-                        return <div key={reportIndex}>{renderReportItem(report, copyId, colorClass)}</div>
+                        const location = sectionIndex === 0 ? crossingName.trim() : stationName.trim()
+                        const preparedReport = {
+                          ...report,
+                          text: sectionIndex === 0
+                            ? report.text.replace(/\*название\*/gi, location || "*название*")
+                            : report.text.replace(/\*Мирного\/Невского\/Приволжска\*/g, location || "*Мирного/Невского/Приволжска*"),
+                        }
+                        return <div key={reportIndex}>{renderReportItem(preparedReport, copyId, colorClass)}</div>
                       })}
                     </div>
                   </div>

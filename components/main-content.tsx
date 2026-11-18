@@ -36,7 +36,10 @@ function MainContentInner() {
   const { theme } = useTheme()
 
   useEffect(() => {
-    void fetch("/api/sync-from-sheets", { cache: "no-store" }).then(() => getAllUsers(true)).catch(() => undefined)
+    const syncSidebarToViewport = () => setIsCollapsed(window.innerWidth < 768)
+    syncSidebarToViewport()
+    window.addEventListener("resize", syncSidebarToViewport)
+    return () => window.removeEventListener("resize", syncSidebarToViewport)
   }, [])
 
   const DEFAULT_BACKGROUND =
