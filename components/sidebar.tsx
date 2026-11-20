@@ -753,79 +753,53 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed, setIsColl
             />
           )}
 
-          <div className={`mt-auto pt-4 mb-2 ${isCollapsed ? "space-y-2" : "space-y-2"}`}>
-              <div className={`flex gap-2 ${isCollapsed ? "flex-col" : ""}`}>
-                <div className="relative flex-1" style={{ position: "relative" }}>
-                  <Button
-                    variant="outline"
-                    className={`w-full bg-transparent ${getTextColor()} hover:${getTextColor()} border-white/20 hover:border-white/40 h-9 px-2`}
-                    onClick={handleOpenNotifications}
-                    data-tour="notifications"
-                    title="Уведомления"
-                    aria-label={unreadCount > 0 ? `Уведомления, непрочитанных: ${unreadCount}` : "Уведомления"}
-                  >
-                    <Bell className="h-4 w-4" />
-                  </Button>
-                  {unreadCount > 0 && (
-                    <span
-                      className="absolute min-w-[16px] h-4 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center px-0.5 leading-none pointer-events-none"
-                      style={{ position: "absolute", top: "-6px", right: "-6px" }}
-                      aria-hidden="true"
-                    >
-                      {unreadCount > 99 ? "99+" : unreadCount}
-                    </span>
-                  )}
-                </div>
-                <Button
-                  variant="outline"
-                  className={`flex-1 bg-transparent ${getTextColor()} hover:${getTextColor()} border-white/20 hover:border-white/40 h-9 px-2`}
-                  onClick={() => setShowSettings(true)}
-                  data-tour="settings"
-                  title="Настройки"
+          <div className={`mt-auto pt-4 mb-2 grid gap-2 ${isCollapsed ? "grid-cols-1" : "grid-cols-2"}`}>
+            <div className="relative w-full">
+              <Button
+                variant="outline"
+                className={`w-full bg-transparent ${getTextColor()} hover:${getTextColor()} border-white/20 hover:border-white/40 h-9 px-2`}
+                onClick={handleOpenNotifications}
+                data-tour="notifications"
+                title="Уведомления"
+                aria-label={unreadCount > 0 ? `Уведомления, непрочитанных: ${unreadCount}` : "Уведомления"}
+              >
+                <Bell className="h-4 w-4" />
+              </Button>
+              {unreadCount > 0 && (
+                <span
+                  className="absolute min-w-[16px] h-4 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center px-0.5 leading-none pointer-events-none"
+                  style={{ top: "-6px", right: "-6px" }}
+                  aria-hidden="true"
                 >
-                  <Settings className="h-4 w-4" />
-                </Button>
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              )}
             </div>
-
-            {!isCollapsed ? (
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  className={`flex-1 bg-transparent ${getTextColor()} hover:${getTextColor()} border-white/20 hover:border-white/40 h-9 px-2`}
-                  onClick={handleLogout}
-                  title="Выйти"
-                >
-                  <LogOut className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  className={`flex-1 bg-transparent ${getTextColor()} hover:${getTextColor()} border-white/20 hover:border-white/40 h-9 px-2`}
-                  onClick={() => setIsCollapsed(!isCollapsed)}
-                  title="Свернуть"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-              </div>
-            ) : (
-              <>
-                <Button
-                  variant="outline"
-                  className={`flex-1 bg-transparent ${getTextColor()} hover:${getTextColor()} border-white/20 hover:border-white/40 h-9 px-2`}
-                  onClick={handleLogout}
-                  title="Выйти"
-                >
-                  <LogOut className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  className={`flex-1 bg-transparent ${getTextColor()} hover:${getTextColor()} border-white/20 hover:border-white/40 h-9 px-2`}
-                  onClick={() => setIsCollapsed(!isCollapsed)}
-                  title="Развернуть"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </>
-            )}
+            <Button
+              variant="outline"
+              className={`w-full bg-transparent ${getTextColor()} hover:${getTextColor()} border-white/20 hover:border-white/40 h-9 px-2`}
+              onClick={() => setShowSettings(true)}
+              data-tour="settings"
+              title="Настройки"
+            >
+              <Settings className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              className={`w-full bg-transparent ${getTextColor()} hover:${getTextColor()} border-white/20 hover:border-white/40 h-9 px-2`}
+              onClick={handleLogout}
+              title="Выйти"
+            >
+              <LogOut className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              className={`w-full bg-transparent ${getTextColor()} hover:${getTextColor()} border-white/20 hover:border-white/40 h-9 px-2`}
+              onClick={() => setIsCollapsed(!isCollapsed)}
+              title={isCollapsed ? "Развернуть" : "Свернуть"}
+            >
+              {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+            </Button>
           </div>
         </div>
       </aside>
