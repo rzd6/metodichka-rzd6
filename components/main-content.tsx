@@ -147,7 +147,11 @@ function MainContentInner() {
 
       try {
         const allUsers = await getAllUsers(true)
-        const dbUser = allUsers.find((u) => u.id === currentData.id)
+        // The user directory helper returns an empty list when its request fails.
+        // Keep the current session in that case instead of treating it as a deleted account.
+        if (allUsers.length === 0) return
+
+        const dbUser = allUsers.find((u) => String(u.id) === String(currentData.id))
 
         if (!dbUser) {
           // Account was explicitly deleted — log out

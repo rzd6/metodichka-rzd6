@@ -41,11 +41,11 @@ export function MiniTasksSection() {
   return (
     <section className="space-y-5" aria-labelledby="mini-tasks-heading">
       <header className="flex items-center gap-3 border-b pb-4" style={{ borderColor: `${tieColor}55` }}>
-        <div className="rounded-xl p-3" style={{ backgroundColor: `${tieColor}20` }}>
+        <div className="rounded-xl p-3" style={{ background: `linear-gradient(135deg, ${tieColor}20, ${tieColor}10)` }}>
           <Truck className="size-6" style={{ color: tieColor }} aria-hidden="true" />
         </div>
         <div>
-          <h1 id="mini-tasks-heading" className="text-2xl font-bold sm:text-3xl" style={{ color: tieColor }}>Мини-задания</h1>
+          <h1 id="mini-tasks-heading" className="text-3xl font-bold" style={{ color: tieColor }}>Мини-задания</h1>
           <p className={`mt-1 text-sm ${mutedColor}`}>Поставка материалов для нужд ОАО «РЖД»</p>
         </div>
       </header>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, type ReactNode } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { Bell, Users, X, Crown, Shield, UsersRound, Train, Wrench, Terminal } from "lucide-react"
@@ -39,6 +39,46 @@ const ROLE_AVATARS: Record<string, string> = {
   "Старший Состав": "/avatars/senior-staff.png",
   ЦдУД: "/avatars/cdud.png",
   ПТО: "/avatars/pto.png",
+}
+
+const NOTIFICATION_URL_PATTERN = /(?:https?:\/\/|www\.)[^\s<>"']+|(?<![\w@])(?:[a-z0-9-]+\.)+(?:ru|com|org|net|io|dev|app|co|info|gg|me|tv|cc|online|site|рф)(?:\/[^\s<>"']*)?/gi
+
+function LinkifiedText({ text, color }: { text: string; color: string }) {
+  const parts: ReactNode[] = []
+  const urlPattern = new RegExp(NOTIFICATION_URL_PATTERN.source, NOTIFICATION_URL_PATTERN.flags)
+  let cursor = 0
+  let linkIndex = 0
+  let match: RegExpExecArray | null
+
+  while ((match = urlPattern.exec(text)) !== null) {
+    let url = match[0]
+    let trailingText = ""
+    while (/[.,!?;:)\]}]/.test(url.slice(-1))) {
+      trailingText = url.slice(-1) + trailingText
+      url = url.slice(0, -1)
+    }
+    if (!url) continue
+
+    if (match.index > cursor) parts.push(text.slice(cursor, match.index))
+    const href = url.startsWith("www.") ? `https://${url}` : url
+    parts.push(
+      <a
+        key={`link-${linkIndex++}`}
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="break-all underline underline-offset-2 hover:opacity-80 focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2"
+        style={{ color }}
+      >
+        {url}
+      </a>,
+    )
+    if (trailingText) parts.push(trailingText)
+    cursor = match.index + match[0].length
+  }
+
+  if (cursor < text.length) parts.push(text.slice(cursor))
+  return <>{parts}</>
 }
 
 export function NotificationsModal({ open, onOpenChange, userRole, secondaryRole, refreshKey }: NotificationsModalProps) {
@@ -218,13 +258,15 @@ export function NotificationsModal({ open, onOpenChange, userRole, secondaryRole
                 </div>
               )}
 
-              <h3 className="font-bold text-base mb-2">{article.title}</h3>
+              <h3 className="font-bold text-base mb-2">
+                <LinkifiedText text={article.title} color={getTieColor()} />
+              </h3>
               <p
                 className={`text-sm leading-relaxed whitespace-pre-wrap mb-3 ${
                   theme.mode === "dark" ? "text-white/70" : "text-gray-600"
                 }`}
               >
-                {article.content}
+                <LinkifiedText text={article.content} color={getTieColor()} />
               </p>
 
               <div className="flex items-center gap-3 flex-wrap">

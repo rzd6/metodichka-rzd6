@@ -267,13 +267,14 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed, setIsColl
         const { getArticles } = await import("@/lib/supabase-rzd")
         const all = await getArticles()
         const readKey = `readArticles_${user.id || user.nickname || "guest"}`
-        const readIds: string[] = JSON.parse(localStorage.getItem(readKey) || "[]")
+        const storedReadIds: unknown = JSON.parse(localStorage.getItem(readKey) || "[]")
+        const readIds = new Set(Array.isArray(storedReadIds) ? storedReadIds.map(String) : [])
         const visible = all.filter((a: any) => {
           if (!a.is_published || !Array.isArray(a.allowed_roles)) return false
           if (user.role === "Тех. Администратор" || user.secondaryRole === "Тех. Администратор") return true
           return a.allowed_roles.includes(user.role) || (user.secondaryRole ? a.allowed_roles.includes(user.secondaryRole) : false)
         })
-        const count = visible.filter((a: any) => !readIds.includes(a.id)).length
+        const count = visible.filter((a: any) => !readIds.has(String(a.id))).length
         setUnreadCount(count)
       } catch {
         setUnreadCount(0)
@@ -601,8 +602,13 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed, setIsColl
     try {
       const { getArticles } = await import("@/lib/supabase-rzd")
       const all = await getArticles()
+      const visible = all.filter((article: any) => {
+        if (!article.is_published || !Array.isArray(article.allowed_roles)) return false
+        if (user.role === "Тех. Администратор" || user.secondaryRole === "Тех. Администратор") return true
+        return article.allowed_roles.includes(user.role) || (user.secondaryRole ? article.allowed_roles.includes(user.secondaryRole) : false)
+      })
       const readKey = `readArticles_${user.id || user.nickname || "guest"}`
-      const ids = all.map((a: any) => a.id)
+      const ids = visible.map((article: any) => String(article.id))
       localStorage.setItem(readKey, JSON.stringify(ids))
     } catch {
       // silent
@@ -747,72 +753,53 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed, setIsColl
             />
           )}
 
-          <div className={`mt-auto pt-4 mb-2 ${isCollapsed ? "space-y-2" : "space-y-2"}`}>
-            <div className={`flex gap-2 ${isCollapsed ? "flex-col" : ""}`}>
-                <Button
-                  variant="outline"
-                  className={`relative flex-1 bg-transparent ${getTextColor()} hover:${getTextColor()} border-white/20 hover:border-white/40 h-9 px-2`}
-                  onClick={handleOpenNotifications}
-                  data-tour="notifications"
-                  title="Уведомления"
+          <div className={`mt-auto pt-4 mb-2 grid gap-2 ${isCollapsed ? "grid-cols-1" : "grid-cols-2"}`}>
+            <div className="relative w-full">
+              <Button
+                variant="outline"
+                className={`w-full bg-transparent ${getTextColor()} hover:${getTextColor()} border-white/20 hover:border-white/40 h-9 px-2`}
+                onClick={handleOpenNotifications}
+                data-tour="notifications"
+                title="Уведомления"
+                aria-label={unreadCount > 0 ? `Уведомления, непрочитанных: ${unreadCount}` : "Уведомления"}
+              >
+                <Bell className="h-4 w-4" />
+              </Button>
+              {unreadCount > 0 && (
+                <span
+                  className="absolute min-w-[16px] h-4 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center px-0.5 leading-none pointer-events-none"
+                  style={{ top: "-6px", right: "-6px" }}
+                  aria-hidden="true"
                 >
-                  <Bell className="h-4 w-4" />
-                  {unreadCount > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center px-0.5 leading-none">
-                      {unreadCount > 99 ? "99+" : unreadCount}
-                    </span>
-                  )}
-                </Button>
-                <Button
-                  variant="outline"
-                  className={`flex-1 bg-transparent ${getTextColor()} hover:${getTextColor()} border-white/20 hover:border-white/40 h-9 px-2`}
-                  onClick={() => setShowSettings(true)}
-                  data-tour="settings"
-                  title="Настройки"
-                >
-                  <Settings className="h-4 w-4" />
-                </Button>
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              )}
             </div>
-
-            {!isCollapsed ? (
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  className={`flex-1 bg-transparent ${getTextColor()} hover:${getTextColor()} border-white/20 hover:border-white/40 h-9 px-2`}
-                  onClick={handleLogout}
-                  title="Выйти"
-                >
-                  <LogOut className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  className={`flex-1 bg-transparent ${getTextColor()} hover:${getTextColor()} border-white/20 hover:border-white/40 h-9 px-2`}
-                  onClick={() => setIsCollapsed(!isCollapsed)}
-                  title="Свернуть"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-              </div>
-            ) : (
-              <>
-                <Button
-                  variant="outline"
-                  className={`flex-1 bg-transparent ${getTextColor()} hover:${getTextColor()} border-white/20 hover:border-white/40 h-9 px-2`}
-                  onClick={handleLogout}
-                  title="Выйти"
-                >
-                  <LogOut className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  className={`flex-1 bg-transparent ${getTextColor()} hover:${getTextColor()} border-white/20 hover:border-white/40 h-9 px-2`}
-                  onClick={() => setIsCollapsed(!isCollapsed)}
-                  title="Развернуть"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </>
-            )}
+            <Button
+              variant="outline"
+              className={`w-full bg-transparent ${getTextColor()} hover:${getTextColor()} border-white/20 hover:border-white/40 h-9 px-2`}
+              onClick={() => setShowSettings(true)}
+              data-tour="settings"
+              title="Настройки"
+            >
+              <Settings className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              className={`w-full bg-transparent ${getTextColor()} hover:${getTextColor()} border-white/20 hover:border-white/40 h-9 px-2`}
+              onClick={handleLogout}
+              title="Выйти"
+            >
+              <LogOut className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              className={`w-full bg-transparent ${getTextColor()} hover:${getTextColor()} border-white/20 hover:border-white/40 h-9 px-2`}
+              onClick={() => setIsCollapsed(!isCollapsed)}
+              title={isCollapsed ? "Развернуть" : "Свернуть"}
+            >
+              {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+            </Button>
           </div>
         </div>
       </aside>
