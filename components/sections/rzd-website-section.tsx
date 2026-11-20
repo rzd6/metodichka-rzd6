@@ -607,7 +607,7 @@ export function RZDWebsiteSection({ userRole, userNickname, secondaryRole }: RZD
               <div className="space-y-2">
                 <Label className="text-base font-medium">Кому видно уведомление</Label>
                 <div className="flex flex-wrap gap-2">
-                  {ALL_ROLES.map((role) => {
+                  {ALL_ROLES.filter((role) => role !== "Тех. Администратор").map((role) => {
                     const isSelected = selectedRoles.includes(role)
                     return (
                       <button

@@ -238,7 +238,7 @@ export function TrainScheduleSection({ userRole, userNickname, secondaryRole }: 
     setShiftsLoading(true)
     setShiftsError(false)
     try {
-      const res = await fetch(`/api/train-shifts?date=${shiftDate}&with_trains=1`, { headers: { "Content-Type": "application/json" } })
+      const res = await fetch(`/api/train-shifts?date=${shiftDate}&with_trains=1`, { cache: "no-store", headers: { "Content-Type": "application/json" } })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const { data } = await res.json()
       if (Array.isArray(data)) setShifts(data)
@@ -301,7 +301,11 @@ export function TrainScheduleSection({ userRole, userNickname, secondaryRole }: 
     try {
       const { error } = await apiFetch("/api/train-shifts", {
         method: "DELETE",
-        body: JSON.stringify({ id: targetId }),
+        body: JSON.stringify({
+          id: targetId,
+          train_number: deleteShiftTarget.train_number,
+          shift_date: targetDate,
+        }),
       })
       if (error) throw new Error(error)
       await loadShifts()

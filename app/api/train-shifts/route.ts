@@ -16,9 +16,13 @@ export async function GET(req: NextRequest) {
           const trainIds = rows.map((row: any) => row.train_id).filter(Boolean)
           const { data: trains } = await getSupabaseServer().from("trains").select("id,direction,class,depart_depot,depart_start,arrive_middle,depart_middle,arrive_end,arrive_depot,platform_start,platform_middle,platform_end").in("id", trainIds)
           const trainsById = new Map((trains ?? []).map((train: any) => [train.id, train]))
-          rows = rows.map((row: any) => ({ ...row, ...(trainsById.get(row.train_id) ?? {}) }))
+          rows = rows.map((row: any) => ({
+            ...row,
+            ...(trainsById.get(row.train_id) ?? {}),
+            id: row.id,
+          }))
         }
-        return NextResponse.json({ data: rows }, { headers: corsHeaders() })
+        return NextResponse.json({ data: rows }, { headers: { ...corsHeaders(), "Cache-Control": "no-store, max-age=0" } })
       }
       lastError = error
       await new Promise((resolve) => setTimeout(resolve, 150 * (attempt + 1)))
@@ -28,4 +32,43 @@ export async function GET(req: NextRequest) {
 }
 export async function POST(req: Request) { try { const b = await req.json(); const date = b.shift_date || new Date().toISOString().slice(0, 10); const db = getSupabaseServer(); if (b.dispatcher_nickname) { const { data, error } = await db.from("train_shifts").update({ dispatcher_nickname: b.dispatcher_nickname, dispatcher_role: b.dispatcher_role ?? "ЦдУД" }).eq("train_number", b.train_number).eq("shift_date", date).select().maybeSingle(); if (error) throw error; return NextResponse.json({ data }) } const { data, error } = await db.from("train_shifts").upsert({ train_id: b.train_id, train_number: b.train_number, claimed_by_nickname: b.claimed_by_nickname, claimed_by_role: b.claimed_by_role, shift_date: date }, { onConflict: "train_number,shift_date", ignoreDuplicates: true }).select().maybeSingle(); if (error) throw error; return NextResponse.json({ data: data ?? null }) } catch (err: any) { return NextResponse.json({ error: err.message }, { status: 500 }) } }
 export async function PATCH(req: Request) { try { const b = await req.json(); if (!b.id) return NextResponse.json({ error: "id required" }, { status: 400 }); const { data, error } = await getSupabaseServer().from("train_shifts").update({ delay_minutes: b.delay_minutes ?? 0 }).eq("id", b.id).select().maybeSingle(); if (error) throw error; return NextResponse.json({ data }) } catch (err: any) { return NextResponse.json({ error: err.message }, { status: 500 }) } }
-export async function DELETE(req: Request) { try { const b = await req.json(); let q = getSupabaseServer().from("train_shifts").delete(); if (b.id) q = q.eq("id", b.id); else if (b.train_number && b.shift_date) q = q.eq("train_number", b.train_number).eq("shift_date", b.shift_date); else return NextResponse.json({ error: "id or (train_number + shift_date) required" }, { status: 400 }); const { error } = await q; if (error) throw error; return NextResponse.json({ success: true }, { headers: corsHeaders() }) } catch (err: any) { return NextResponse.json({ error: err.message }, { status: 500, headers: corsHeaders() }) } }
+export async function DELETE(req: Request) {
+  try {
+    const body = await req.json()
+    const db = getSupabaseServer()
+    const trainNumber = Number(body.train_number)
+    const hasCompositeKey =
+      body.train_number !== undefined &&
+      body.train_number !== null &&
+      Number.isInteger(trainNumber) &&
+      trainNumber > 0 &&
+      typeof body.shift_date === "string" &&
+      /^\d{4}-\d{2}-\d{2}$/.test(body.shift_date)
+
+    if (hasCompositeKey) {
+      const { data, error } = await db
+        .from("train_shifts")
+        .delete()
+        .eq("train_number", Number(body.train_number))
+        .eq("shift_date", String(body.shift_date))
+        .select("id")
+      if (error) throw error
+      if (data?.length) {
+        return NextResponse.json({ success: true, deletedCount: data.length }, { headers: corsHeaders() })
+      }
+    }
+
+    if (!body.id) {
+      return NextResponse.json(
+        { error: "id or (train_number + shift_date) required" },
+        { status: 400, headers: corsHeaders() },
+      )
+    }
+
+    const { data, error } = await db.from("train_shifts").delete().eq("id", body.id).select("id")
+    if (error) throw error
+    return NextResponse.json({ success: true, deletedCount: data?.length ?? 0 }, { headers: corsHeaders() })
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500, headers: corsHeaders() })
+  }
+}
