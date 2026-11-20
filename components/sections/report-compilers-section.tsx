@@ -28,7 +28,7 @@ import {
 // Структура: перегон содержит строки докладов
 interface ReportSegment {
   id: string
-  title: string        // "Перегон: Депо → Мирный"
+  title: string        // "Перегон: Депо ТЧЭ-1 → Мирный"
   reports: string[]
   situations?: Array<{ title: string; reports: string[] }>
   // Опоздание применяется к прибытию на конечную станцию перегона
@@ -260,7 +260,7 @@ export function ReportCompilerSection({ userRole, userNickname, secondaryRole }:
 
         segs.push({
           id: "seg-depot-priv",
-          title: "Перегон: Депо → Приволжск",
+          title: "Перегон: Депо ТЧЭ-1 → Приволжск",
           delayMinutes: 0,
           reports: [
             `cr Диспетчер!`,
@@ -312,7 +312,7 @@ export function ReportCompilerSection({ userRole, userNickname, secondaryRole }:
         })
         segs.push({
           id: "seg-mirny-depot",
-          title: "Перегон: Мирный → Депо",
+          title: "Перегон: Мирный → Депо ТЧЭ-1",
           delayMinutes: 0,
           isLastSegment: true,
           reports: [
@@ -328,7 +328,7 @@ export function ReportCompilerSection({ userRole, userNickname, secondaryRole }:
         // Автономный Приволжск→Мирный
         segs.push({
           id: "seg-depot-priv",
-          title: "Перегон: Депо → Приволжск",
+          title: "Перегон: Депо ТЧЭ-1 → Приволжск",
           delayMinutes: 0,
           reports: [
             `r [${callSign}] Приняли ${lowerLoco}-${locomotiveNumber} №${flightNumber}, заполнили документацию.`,
@@ -367,7 +367,7 @@ export function ReportCompilerSection({ userRole, userNickname, secondaryRole }:
         })
         segs.push({
           id: "seg-mirny-depot",
-          title: "Перегон: Мирный → Депо",
+          title: "Перегон: Мирный → Депо ТЧЭ-1",
           delayMinutes: 0,
           isLastSegment: true,
           reports: [
@@ -384,7 +384,7 @@ export function ReportCompilerSection({ userRole, userNickname, secondaryRole }:
 
         segs.push({
           id: "seg-depot-mirny",
-          title: "Перегон: Депо → Мирный",
+          title: "Перегон: Депо ТЧЭ-1 → Мирный",
           delayMinutes: 0,
           reports: [
             `cr Диспетчер!`,
@@ -436,7 +436,7 @@ export function ReportCompilerSection({ userRole, userNickname, secondaryRole }:
         })
         segs.push({
           id: "seg-priv-depot",
-          title: "Перегон: Приволжск → Депо",
+          title: "Перегон: Приволжск → Депо ТЧЭ-1",
           delayMinutes: 0,
           isLastSegment: true,
           reports: [
@@ -452,7 +452,7 @@ export function ReportCompilerSection({ userRole, userNickname, secondaryRole }:
         // Автономный Мирный→Приволжск
         segs.push({
           id: "seg-depot-mirny",
-          title: "Перегон: Депо → Мирный",
+          title: "Перегон: Депо ТЧЭ-1 → Мирный",
           delayMinutes: 0,
           reports: [
             `r [${callSign}] Приняли ${lowerLoco}-${locomotiveNumber} №${flightNumber}, заполнили документацию.`,
@@ -488,7 +488,7 @@ export function ReportCompilerSection({ userRole, userNickname, secondaryRole }:
         })
         segs.push({
           id: "seg-priv-depot",
-          title: "Перегон: Приволжск → Депо",
+          title: "Перегон: Приволжск → Депо ТЧЭ-1",
           delayMinutes: 0,
           isLastSegment: true,
           reports: [
@@ -519,7 +519,7 @@ export function ReportCompilerSection({ userRole, userNickname, secondaryRole }:
 
         segs.push({
           id: "seg-depot-priv",
-          title: "Перегон: Депо → Приволжск",
+          title: "Перегон: Депо ТЧЭ-1 → Приволжск",
           delayMinutes: 0,
           reports: [
             `cr Диспетчер!`,
@@ -571,7 +571,7 @@ export function ReportCompilerSection({ userRole, userNickname, secondaryRole }:
         })
         segs.push({
           id: "seg-mirny-depot",
-          title: "Перегон: Мирный → Депо",
+          title: "Перегон: Мирный → Депо ТЧЭ-1",
           delayMinutes: 0,
           isLastSegment: true,
           reports: [
@@ -587,7 +587,7 @@ export function ReportCompilerSection({ userRole, userNickname, secondaryRole }:
         // Автономный Туристический Приволжск→Мирный
         segs.push({
           id: "seg-depot-priv",
-          title: "Перегон: Депо → Приволжск",
+          title: "Перегон: Депо ТЧЭ-1 → Приволжск",
           delayMinutes: 0,
           reports: [
             `r [${callSign}] Приняли ${lowerLoco}-${locomotiveNumber} №${flightNumber}, заполнили документацию.`,
@@ -625,7 +625,7 @@ export function ReportCompilerSection({ userRole, userNickname, secondaryRole }:
         })
         segs.push({
           id: "seg-mirny-depot",
-          title: "Перегон: Мирный → Депо",
+          title: "Перегон: Мирный → Депо ТЧЭ-1",
           delayMinutes: 0,
           isLastSegment: true,
           reports: [
@@ -642,7 +642,7 @@ export function ReportCompilerSection({ userRole, userNickname, secondaryRole }:
 
         segs.push({
           id: "seg-depot-mirny",
-          title: "Перегон: Депо → Мирный",
+          title: "Перегон: Депо ТЧЭ-1 → Мирный",
           delayMinutes: 0,
           reports: [
             `cr Диспетчер!`,
@@ -694,7 +694,7 @@ export function ReportCompilerSection({ userRole, userNickname, secondaryRole }:
         })
         segs.push({
           id: "seg-priv-depot",
-          title: "Перегон: Приволжск → Депо",
+          title: "Перегон: Приволжск → Депо ТЧЭ-1",
           delayMinutes: 0,
           isLastSegment: true,
           reports: [
@@ -710,7 +710,7 @@ export function ReportCompilerSection({ userRole, userNickname, secondaryRole }:
         // Автономный Туристический Мирный→Приволжск
         segs.push({
           id: "seg-depot-mirny",
-          title: "Перегон: Депо → Мирный",
+          title: "Перегон: Депо ТЧЭ-1 → Мирный",
           delayMinutes: 0,
           reports: [
             `r [${callSign}] Приняли ${lowerLoco}-${locomotiveNumber} №${flightNumber}, заполнили документацию.`,
@@ -747,7 +747,7 @@ export function ReportCompilerSection({ userRole, userNickname, secondaryRole }:
         })
         segs.push({
           id: "seg-priv-depot",
-          title: "Перегон: Приволжск → Депо",
+          title: "Перегон: Приволжск → Депо ТЧЭ-1",
           delayMinutes: 0,
           isLastSegment: true,
           reports: [
@@ -764,22 +764,27 @@ export function ReportCompilerSection({ userRole, userNickname, secondaryRole }:
   const addSituationReports = (segs: ReportSegment[], callSign: string) => {
     const isDNC = selectedType === "Рейс с ДНЦ"
 
-    for (const segment of segs) {
+    for (const [segmentIndex, segment] of segs.entries()) {
       const route = segment.title.replace(/^Перегон:\s*/, "")
       const [from, to] = route.split(" → ")
+      const fromLocation = from === "Депо ТЧЭ-1" ? "из депо ТЧЭ-1" : `со ст. ${from}`
+      const toLocation = to === "Депо ТЧЭ-1" ? "депо ТЧЭ-1" : `ст. ${to}`
       const situation = `на перегоне ${from} — ${to}`
 
       segment.situations = [
+        ...(segmentIndex === 0
+          ? [{ title: "Технические неполадки", reports: [`r [${callSign}] Тех. неполадки.`] }]
+          : []),
         {
           title: "Переговоры с монтёром пути",
           reports: isDNC
             ? [
-                `r [ДНЦ] - [ПЧ] Со ${from} отправляется поезд ${callSign} на перегон до ${to}. Освободите путь!`,
+                `r [ДНЦ] - [ПЧ] Поезд ${callSign} отправляется ${fromLocation} на перегон до ${toLocation}. Освободите путь!`,
                 "r [ПЧ] - [ДНЦ] Путь свободен!",
                 "r [ПЧ] - [ДНЦ] Поезд проследовал перегон без замечаний.",
               ]
             : [
-                `r [${callSign}] - [ПЧ] Отправляемся со ${from} на перегон до ${to}. Освободите путь!`,
+                `r [${callSign}] - [ПЧ] Отправляемся ${fromLocation} на перегон до ${toLocation}. Освободите путь!`,
                 `r [ПЧ] - [${callSign}] Путь свободен!`,
                 `r [ПЧ] - [${callSign}] Поезд проследовал перегон без замечаний.`,
               ],
@@ -802,10 +807,6 @@ export function ReportCompilerSection({ userRole, userNickname, secondaryRole }:
                 `r [${callSign}] Внимание, произошло ДТП ${situation}. Остановите составы в этом направлении!`,
                 `r [${callSign}] Виновник ДТП скрылся. Продолжаю движение.`,
               ],
-        },
-        {
-          title: "Технические неполадки",
-          reports: [`r [${callSign}] Тех. неполадки.`],
         },
       ]
     }
