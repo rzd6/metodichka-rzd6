@@ -10,6 +10,7 @@ import { getMiniTaskTemplate, LOADING_UNLOADING_PHOTO, MINI_TASKS, MINI_TASK_RUL
 import { getEffectiveReportTag } from "@/data/users"
 import { Input } from "@/components/ui/input"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { Skeleton } from "@/components/ui/skeleton"
 
 export function MiniTasksSection() {
   const { theme } = useTheme()
@@ -19,6 +20,7 @@ export function MiniTasksSection() {
   const [reportTag, setReportTag] = useState("[ТЭГ]")
   const [port, setPort] = useState("Невского")
   const [helperName, setHelperName] = useState("")
+  const [photoState, setPhotoState] = useState<"loading" | "loaded" | "error">("loading")
   const textColor = isDark ? "text-white" : "text-gray-900"
   const mutedColor = isDark ? "text-white/65" : "text-gray-600"
   const surface = isDark ? "border-white/10 bg-[#0f1419]/60" : "border-gray-200 bg-white/90"
@@ -82,8 +84,20 @@ export function MiniTasksSection() {
           <p className={`text-sm ${mutedColor}`}>Фото для ориентира при выполнении задания.</p>
         </CardHeader>
         <CardContent>
-          <a href={LOADING_UNLOADING_PHOTO} target="_blank" rel="noopener noreferrer" className={`block overflow-hidden rounded-xl border focus-visible:outline-none focus-visible:ring-2 ${isDark ? "border-white/10" : "border-black/10"}`} style={{ outlineColor: tieColor }}>
-            <img src={LOADING_UNLOADING_PHOTO} alt="Место загрузки и разгрузки для мини-заданий" className="max-h-[420px] w-full object-contain" loading="lazy" />
+          <a href={LOADING_UNLOADING_PHOTO} target="_blank" rel="noopener noreferrer" className={`relative block min-h-52 overflow-hidden rounded-xl border focus-visible:outline-none focus-visible:ring-2 ${isDark ? "border-white/10 bg-white/[0.03]" : "border-black/10 bg-black/[0.03]"}`} style={{ outlineColor: tieColor }}>
+            {photoState === "loading" && <Skeleton className="absolute inset-0 h-full w-full rounded-none" />}
+            {photoState === "error" ? (
+              <span className={`flex min-h-52 items-center justify-center px-4 text-sm ${mutedColor}`} role="status">Не удалось загрузить фото. Нажмите, чтобы открыть источник.</span>
+            ) : (
+              <img
+                src={LOADING_UNLOADING_PHOTO}
+                alt="Место загрузки и разгрузки для мини-заданий"
+                className={`max-h-[420px] w-full object-contain transition-opacity duration-300 ${photoState === "loaded" ? "opacity-100" : "opacity-0"}`}
+                loading="lazy"
+                onLoad={() => setPhotoState("loaded")}
+                onError={() => setPhotoState("error")}
+              />
+            )}
           </a>
           <a href={LOADING_UNLOADING_PHOTO} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex text-sm underline underline-offset-4" style={{ color: tieColor }}>
             Открыть фото в полном размере
