@@ -30,6 +30,7 @@ interface ReportSegment {
   id: string
   title: string        // "Перегон: Депо → Мирный"
   reports: string[]
+  situations?: Array<{ title: string; reports: string[] }>
   // Опоздание применяется к прибытию на конечную станцию перегона
   delayMinutes: number
   isLastSegment?: boolean
@@ -210,6 +211,7 @@ export function ReportCompilerSection({ userRole, userNickname, secondaryRole }:
         generateTouristSegments(newSegments, callSign)
       }
 
+      addSituationReports(newSegments, callSign)
       setSegments(newSegments)
       setGeneratedReports([])
       setGeneratedWithType(selectedType)
@@ -759,11 +761,61 @@ export function ReportCompilerSection({ userRole, userNickname, secondaryRole }:
     }
   }
 
+  const addSituationReports = (segs: ReportSegment[], callSign: string) => {
+    const isDNC = selectedType === "Рейс с ДНЦ"
+
+    for (const segment of segs) {
+      const route = segment.title.replace(/^Перегон:\s*/, "")
+      const [from, to] = route.split(" → ")
+      const situation = `на перегоне ${from} — ${to}`
+
+      segment.situations = [
+        {
+          title: "Переговоры с монтёром пути",
+          reports: isDNC
+            ? [
+                `r [ДНЦ] - [ПЧ] Со ${from} отправляется поезд ${callSign} на перегон до ${to}. Освободите путь!`,
+                "r [ПЧ] - [ДНЦ] Путь свободен!",
+                "r [ПЧ] - [ДНЦ] Поезд проследовал перегон без замечаний.",
+              ]
+            : [
+                `r [${callSign}] - [ПЧ] Отправляемся со ${from} на перегон до ${to}. Освободите путь!`,
+                `r [ПЧ] - [${callSign}] Путь свободен!`,
+                `r [ПЧ] - [${callSign}] Поезд проследовал перегон без замечаний.`,
+              ],
+        },
+        {
+          title: "ДТП",
+          reports: isDNC
+            ? [
+                "cr Диспетчер!",
+                `tr ${passNumber} ДНЦ ${dispatcherName}, слушаю.`,
+                `cr Произошло ДТП ${situation}.`,
+                `tr ${passNumber} Понятно, произошло ДТП ${situation}.`,
+                `r [ДНЦ] Внимание! Произошло ДТП ${situation}. Запрещается движение по данному перегону.`,
+                "cr Виновник ДТП скрылся, состав готов к отправлению.",
+                `tr ${passNumber} Понятно, виновник ДТП скрылся. Разрешаю движение.`,
+                "cr Принято! Выполняю.",
+                `r [ДНЦ] Разрешается движение подвижных составов ${situation}.`,
+              ]
+            : [
+                `r [${callSign}] Внимание, произошло ДТП ${situation}. Остановите составы в этом направлении!`,
+                `r [${callSign}] Виновник ДТП скрылся. Продолжаю движение.`,
+              ],
+        },
+        {
+          title: "Технические неполадки",
+          reports: [`r [${callSign}] Тех. неполадки.`],
+        },
+      ]
+    }
+  }
+
   // ────────────────────────── РЕНДЕР ──────────────────────────
   const isOppositeRole = (report: string) => {
     if (generatedWithType !== "Рейс с ДНЦ" || !generatedWithRole) return false
-    if (generatedWithRole === "Машинист") return report.startsWith("tr ") || report.startsWith("r ")
-    return report.startsWith("cr ")
+    if (generatedWithRole === "Машинист") return report.startsWith("tr ") || report.startsWith("r [ДНЦ]") || report.startsWith("r [ПЧ]")
+    return report.startsWith("cr ") || report.startsWith("r [ПЧ]") || /^r \[[ПТ]-/.test(report)
   }
 
   const copyReport = (text: string, key: string) => {
@@ -1227,6 +1279,30 @@ export function ReportCompilerSection({ userRole, userNickname, secondaryRole }:
                   return renderReportItem(report, key, opposite, isNext)
                 })
               })()}
+
+              {segments.some((segment) => segment.situations?.length) && (
+                <div className="mt-7 border-t pt-5" style={{ borderColor: getTieColor() + "40" }}>
+                  <div className="mb-5 flex items-center gap-3" role="separator" aria-label="Доклады для дополнительных ситуаций">
+                    <span className="h-px flex-1 bg-current opacity-20" />
+                    <h4 className={`text-sm font-semibold ${isDark ? "text-white/70" : "text-gray-600"}`}>Дополнительные ситуации</h4>
+                    <span className="h-px flex-1 bg-current opacity-20" />
+                  </div>
+                  {segments.map((segment) => (
+                    <section key={`situations-${segment.id}`} className="mb-6 last:mb-0">
+                      <h5 className={`mb-3 text-sm font-semibold ${isDark ? "text-white/80" : "text-gray-700"}`}>{segment.title}</h5>
+                      {segment.situations?.map((situation, situationIndex) => (
+                        <div key={`${segment.id}-${situation.title}`} className="mb-4 last:mb-0">
+                          <h6 className={`mb-2 text-xs font-semibold uppercase tracking-wide ${isDark ? "text-white/50" : "text-gray-500"}`}>{situation.title}</h6>
+                          {situation.reports.map((report, reportIndex) => {
+                            const key = `${segment.id}-situation-${situationIndex}-${reportIndex}`
+                            return renderReportItem(report, key, isOppositeRole(report))
+                          })}
+                        </div>
+                      ))}
+                    </section>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </CardContent>

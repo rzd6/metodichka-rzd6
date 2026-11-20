@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useState, useEffect, useCallback, useRef, useLayoutEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -155,6 +155,21 @@ export function TrainScheduleSection({ userRole, userNickname, secondaryRole }: 
   const [shiftsLoading, setShiftsLoading] = useState(true)
   const [trainsError, setTrainsError] = useState(false)
   const [shiftsError, setShiftsError] = useState(false)
+  const pendingScrollRestore = useRef<number | null>(null)
+
+  const preserveScrollPosition = () => {
+    pendingScrollRestore.current = window.scrollY
+  }
+
+  useLayoutEffect(() => {
+    if (pendingScrollRestore.current === null) return
+    const frame = window.requestAnimationFrame(() => {
+      const scrollTop = pendingScrollRestore.current
+      if (scrollTop !== null) window.scrollTo({ top: scrollTop, behavior: "instant" })
+      pendingScrollRestore.current = null
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [trains, shifts])
 
   const [activeDirection, setActiveDirection] = useState<DirectionTab>("mirny-privolzhsk")
   const [shiftDate, setShiftDate] = useState(getMoscowDateISO())
@@ -265,6 +280,7 @@ export function TrainScheduleSection({ userRole, userNickname, secondaryRole }: 
       toast({ title: "Рейс занят", description: `Рейс №${trainNumber} уже занял ${alreadyClaimed.claimed_by_nickname}`, variant: "destructive" })
       return
     }
+    preserveScrollPosition()
     setIsLoading(true)
     try {
       const { data, error } = await apiFetch("/api/train-shifts", {
@@ -296,6 +312,7 @@ export function TrainScheduleSection({ userRole, userNickname, secondaryRole }: 
     setIsLoading(true)
     const targetId = deleteShiftTarget.id
     const targetDate = deleteShiftTarget.shift_date
+    preserveScrollPosition()
     setShifts((prev) => prev.filter((s) => s.id !== targetId))
     setDeleteShiftTarget(null)
     try {
@@ -327,6 +344,7 @@ export function TrainScheduleSection({ userRole, userNickname, secondaryRole }: 
       toast({ title: "Неверное время отправления из депо", description: "Для пассажирских рейсов отправление из депо должно быть в 00, 15, 30 или 45 минут", variant: "destructive" })
       return
     }
+    preserveScrollPosition()
     setIsLoading(true)
     try {
       const { data, error } = await apiFetch("/api/trains", {
@@ -369,6 +387,7 @@ export function TrainScheduleSection({ userRole, userNickname, secondaryRole }: 
 
   const handleDeleteTrain = async () => {
     if (!deleteTrainTarget) return
+    preserveScrollPosition()
     setIsLoading(true)
     try {
       const { error } = await apiFetch("/api/trains", {
@@ -389,6 +408,7 @@ export function TrainScheduleSection({ userRole, userNickname, secondaryRole }: 
 
   // ---- Bulk delete ----
   const handleBulkDelete = async () => {
+    preserveScrollPosition()
     setIsLoading(true)
     setShowBulkDeleteConfirm(false)
     try {
@@ -499,6 +519,7 @@ export function TrainScheduleSection({ userRole, userNickname, secondaryRole }: 
 
   const handleXlsxImport = async () => {
     if (!xlsxPreview) return
+    preserveScrollPosition()
     setIsLoading(true)
     let added = 0
     let skipped = 0
