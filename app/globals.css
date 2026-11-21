@@ -214,17 +214,16 @@
     }
   }
 
-  .animate-accordion-down {
-    animation: accordion-down 500ms cubic-bezier(0.4, 0, 0.2, 1);
+  [data-slot="accordion-content"].accordion-content[data-state="open"] {
+    animation: accordion-down 500ms cubic-bezier(0.4, 0, 0.2, 1) both;
   }
 
-  .animate-accordion-up {
-    animation: accordion-up 500ms cubic-bezier(0.4, 0, 0.2, 1);
+  [data-slot="accordion-content"].accordion-content[data-state="closed"] {
+    animation: accordion-up 500ms cubic-bezier(0.4, 0, 0.2, 1) both;
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .animate-accordion-down,
-    .animate-accordion-up {
+    [data-slot="accordion-content"].accordion-content {
       animation-duration: 1ms;
     }
   }

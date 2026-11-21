@@ -42,7 +42,7 @@ function AccordionContent({ className, children, ...props }: React.ComponentProp
   return (
     <AccordionPrimitive.Content
       data-slot="accordion-content"
-      className="data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down overflow-hidden text-sm transition-all duration-500 motion-reduce:transition-none"
+      className="accordion-content overflow-hidden text-sm"
       {...props}
     >
       <div className={cn("pt-0 pb-4 max-h-[500px] overflow-y-auto", className)}>{children}</div>
