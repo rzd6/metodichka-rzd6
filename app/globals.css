@@ -215,11 +215,11 @@
   }
 
   .animate-accordion-down {
-    animation: accordion-down 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    animation: accordion-down 500ms cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .animate-accordion-up {
-    animation: accordion-up 180ms cubic-bezier(0.4, 0, 1, 1);
+    animation: accordion-up 500ms cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   @media (prefers-reduced-motion: reduce) {
