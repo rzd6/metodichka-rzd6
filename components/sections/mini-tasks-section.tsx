@@ -142,7 +142,10 @@ export function MiniTasksSection() {
                   </span>
                 </span>
               </AccordionTrigger>
-              <AccordionContent className="border-t p-4 sm:px-5" style={{ borderColor: `${tieColor}30` }}>
+              <AccordionContent
+                className={`border-t p-4 sm:px-5 ${isDark ? "bg-[#0f1419]" : "bg-white"}`}
+                style={{ borderColor: `${tieColor}30` }}
+              >
                 <div>
                   <h3 className={`font-semibold ${textColor}`}>Порядок выполнения</h3>
                   <p className={`mt-1 text-sm ${mutedColor}`}>Отправление → загрузка → возвращение → разгрузка → прибытие в РЖД.</p>
