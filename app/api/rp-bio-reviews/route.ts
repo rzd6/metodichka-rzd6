@@ -3,6 +3,7 @@ import { generateText, gateway, Output } from "ai"
 import { z } from "zod"
 import { getSupabaseServer } from "@/lib/supabase-server"
 import { normalizeStoredRole } from "@/data/roles"
+import { DEV_LOGIN, isDevAccount } from "@/lib/dev-account"
 
 export const dynamic = "force-dynamic"
 
@@ -83,7 +84,7 @@ function htmlToText(html: string): string {
 function buildRuleChecks(text: string, isRzd: boolean, createdAt: Date, hasTopicDate: boolean, title: string) {
   const checks: Array<{ criterion: string; status: "pass" | "fail" | "review"; details: string }> = []
   const titleMatches = /^Биография\s+[\p{L}-]+\s+[\p{L}-]+$/u.test(title)
-  checks.push({ criterion: "Заголовок темы «Биография Имя Фамилия»", status: titleMatches ? "pass" : "fail", details: titleMatches ? "Заголовок соответствует указанному в правилах формату." : "Проверьте формат «Биография Имя Фамилия», без подчёркиваний." })
+  checks.push({ criterion: "Заголовок темы «Биография Имя Фамилия»", status: !title ? "review" : titleMatches ? "pass" : "fail", details: !title ? "Заголовок не удалось получить автоматически; сверьте формат вручную." : titleMatches ? "Заголовок соответствует указанному в правилах формату." : "Проверьте формат «Биография Имя Фамилия», без подчёркиваний." })
   for (const field of fields) {
     const present = new RegExp(`(?:^|\\n)\\s*\\d*\\.?\\s*${field}:`, "im").test(text)
     checks.push({ criterion: `Поле «${field}»`, status: present ? "pass" : "fail", details: present ? "Поле найдено в биографии." : "Не найдено обязательное поле формы." })
@@ -128,6 +129,9 @@ function buildRuleChecks(text: string, isRzd: boolean, createdAt: Date, hasTopic
 
 async function authorize(reviewerId: string | null) {
   if (!reviewerId || reviewerId.length > 100) return null
+  if (process.env.NODE_ENV !== "production" && isDevAccount({ id: reviewerId })) {
+    return { id: reviewerId, nickname: DEV_LOGIN }
+  }
   const { data, error } = await getSupabaseServer().from("users").select("id, username, position, secondary_role").eq("id", reviewerId).maybeSingle()
   if (error) throw error
   if (!data) return null
@@ -163,22 +167,28 @@ export async function POST(request: NextRequest) {
     if (!reviewer) return responseError(new Error("Доступ только для руководства"), 403)
     let url: URL
     try { url = normalizeForumUrl(body.url) } catch (error) { return responseError(error, 400) }
-    let forumResponse: Response
-    try {
-      forumResponse = await fetch(url, { headers: { "User-Agent": "RZD-BioReview/1.0 (biography compliance checker)" }, signal: AbortSignal.timeout(12_000), redirect: "manual" })
-    } catch {
-      return responseError(new Error("Не удалось загрузить биографию с форума."), 502)
+    const pastedText = typeof body.bioText === "string" ? body.bioText.trim().slice(0, 60_000) : ""
+    let pageHtml = ""
+    if (!pastedText) {
+      let forumResponse: Response
+      try {
+        forumResponse = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0 (compatible; RZD-BioReview/1.0)" }, signal: AbortSignal.timeout(12_000), redirect: "manual" })
+      } catch {
+        return responseError(new Error("Не удалось загрузить тему с форума. Вставьте текст биографии в поле ниже и повторите проверку."), 502)
+      }
+      if (!forumResponse.ok) return responseError(new Error(`Форум не открыл тему (HTTP ${forumResponse.status}). Вставьте текст биографии в поле ниже и повторите проверку.`), 422)
+      pageHtml = await forumResponse.text()
     }
-    if (!forumResponse.ok) return responseError(new Error(`Форум не открыл тему (HTTP ${forumResponse.status}). Проверьте доступность ссылки.`), 422)
-    const pageHtml = await forumResponse.text()
-    const text = htmlToText(pageHtml)
-    if (text.length < 80 || !/биограф|имя фамилия|дата и место рождения/i.test(text)) return responseError(new Error("В теме не удалось распознать текст биографии."), 422)
+    const text = pastedText || htmlToText(pageHtml)
+    if (text.length < 80 || !/биограф|имя фамилия|дата и место рождения/i.test(text)) {
+      return responseError(new Error("Не удалось получить текст биографии. Форум может ограничивать автоматический доступ — вставьте текст темы в поле ниже."), 422)
+    }
 
     const isRzd = body.isRzd === true
     const topicDateValue = pageHtml.match(/<time[^>]*datetime=["']([^"']+)["']/i)?.[1]
     const topicCreatedAt = topicDateValue && !Number.isNaN(new Date(topicDateValue).getTime()) ? new Date(topicDateValue) : new Date()
-    const title = (pageHtml.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] ?? "Биография")
-      .replace(/<[^>]+>/g, "").replace(/&amp;/gi, "&").split(" - ")[0].trim()
+    const title = (typeof body.topicTitle === "string" ? body.topicTitle : pageHtml.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] ?? "")
+      .replace(/<[^>]+>/g, "").replace(/&amp;/gi, "&").split(" - ")[0].trim().slice(0, 200)
     const ruleChecks = buildRuleChecks(text, isRzd, topicCreatedAt, Boolean(topicDateValue), title)
     const { output } = await generateText({
       model: gateway("google/gemini-3.5-flash"),

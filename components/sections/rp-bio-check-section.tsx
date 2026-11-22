@@ -70,6 +70,9 @@ export function RpBioCheckSection() {
   const [selectedId, setSelectedId] = useState("")
   const selected = reviews.find((review) => review.id === selectedId) ?? reviews[0]
   const [url, setUrl] = useState("")
+  const [topicTitle, setTopicTitle] = useState("")
+  const [bioText, setBioText] = useState("")
+  const [formError, setFormError] = useState("")
   const [isRzd, setIsRzd] = useState(true)
   const [busy, setBusy] = useState(false)
   const [decisionNote, setDecisionNote] = useState("")
@@ -78,20 +81,25 @@ export function RpBioCheckSection() {
     event.preventDefault()
     if (!reviewerId || !url.trim()) return
     setBusy(true)
+    setFormError("")
     try {
       const response = await fetch("/api/rp-bio-reviews", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reviewerId, url: url.trim(), isRzd }),
+        body: JSON.stringify({ reviewerId, url: url.trim(), topicTitle: topicTitle.trim(), bioText: bioText.trim(), isRzd }),
       })
       const result = await response.json()
       if (!response.ok) throw new Error(result.error || "Проверка не выполнена")
       setUrl("")
+      setTopicTitle("")
+      setBioText("")
       setSelectedId(result.review.id)
       await mutate()
       toast.success("Проверка биографии завершена")
     } catch (cause) {
-      toast.error(cause instanceof Error ? cause.message : "Проверка не выполнена")
+      const message = cause instanceof Error ? cause.message : "Проверка не выполнена"
+      setFormError(message)
+      toast.error(message)
     } finally {
       setBusy(false)
     }
@@ -144,6 +152,15 @@ export function RpBioCheckSection() {
               <Label htmlFor="bio-url">Ссылка на биографию</Label>
               <Input id="bio-url" type="url" required maxLength={500} placeholder="https://forum.gtaprovince.ru/topic/…" value={url} onChange={(event) => setUrl(event.target.value)} />
             </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="bio-title">Заголовок темы (необязательно)</Label>
+              <Input id="bio-title" maxLength={200} placeholder="Биография Имя Фамилия" value={topicTitle} onChange={(event) => setTopicTitle(event.target.value)} />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="bio-text">Текст биографии (если форум не загружается автоматически)</Label>
+              <Textarea id="bio-text" maxLength={60000} rows={7} placeholder="Можно вставить текст первого сообщения темы. Если оставить поле пустым, система попробует загрузить его по ссылке." value={bioText} onChange={(event) => setBioText(event.target.value)} />
+            </div>
+            {formError && <p className="rounded-lg border border-red-500/30 bg-red-500/[0.06] p-3 text-sm text-red-400" role="alert">{formError}</p>}
             <label className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 text-sm ${dark ? "border-white/10" : "border-black/10"}`}>
               <input type="checkbox" className="mt-1 accent-current" style={{ accentColor: color }} checked={isRzd} onChange={(event) => setIsRzd(event.target.checked)} />
               <span><span className="block font-medium">Проверка для РЖД</span><span className={`mt-0.5 block ${muted}`}>Отдельно проверить профильное железнодорожное образование и специальность в биографии.</span></span>
