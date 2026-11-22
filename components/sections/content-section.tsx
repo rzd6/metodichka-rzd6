@@ -22,6 +22,7 @@ import { RZDWebsiteSection } from "./rzd-website-section"
 import { BugReportSection } from "./bug-report-section"
 import { TrainScheduleSection } from "./train-schedule-section"
 import { MiniTasksSection } from "./mini-tasks-section"
+import { RpBioCheckSection } from "./rp-bio-check-section"
 import { CustomSectionView } from "./custom-section-view"
 import { getCustomSections, type CustomSection } from "@/data/custom-sections"
 import type { UserRole } from "@/data/users"
@@ -46,6 +47,7 @@ const SECTION_LABELS: Record<string, string> = {
   "rzd-website": "Официальные уведомления",
   "train-schedule": "Расписание рейсов",
   "mini-tasks": "Мини-задания",
+  "rp-bio-check": "Проверка биографий",
   admin: "Управление",
   "bug-report": "Баг-репорт",
 }
@@ -66,7 +68,7 @@ function SectionWrapper({ activeSection, children }: { activeSection: string; ch
 const BUILTIN_IDS = new Set([
   "contents", "information", "roleplays", "duty", "reports-section", "lectures", "training",
   "events", "exams", "interviews", "retro-train", "reports", "orders", "gov-wave",
-  "report-compiler", "admin", "report-generation", "rzd-website", "train-schedule", "mini-tasks", "bug-report",
+  "report-compiler", "admin", "report-generation", "rzd-website", "train-schedule", "mini-tasks", "bug-report", "rp-bio-check",
 ])
 
 export function ContentSection({ activeSection, onSectionChange, userRole, userNickname, secondaryRole }: ContentSectionProps) {
@@ -172,6 +174,8 @@ export function ContentSection({ activeSection, onSectionChange, userRole, userN
         )
       case "mini-tasks":
         return <MiniTasksSection />
+      case "rp-bio-check":
+        return userRole === "Руководство" || userRole === "Тех. Администратор" || secondaryRole === "Тех. Администратор" ? <RpBioCheckSection /> : null
       case "bug-report":
         return <BugReportSection />
       default:

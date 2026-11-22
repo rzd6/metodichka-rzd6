@@ -15,6 +15,7 @@ import {
   Bell,
   FlaskConical,
   Truck,
+  FileSearch,
 } from "lucide-react"
 import { useState, useEffect, useCallback } from "react"
 import useSWR from "swr"
@@ -487,6 +488,7 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed, setIsColl
         />
       </svg>
     ),
+    "rp-bio-check": (isActive) => <FileSearch color={getIconColor(isActive)} size={20} aria-hidden="true" />,
     "rzd-website": (isActive) => (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <rect x="4" y="4" width="16" height="16" rx="2" stroke={getIconColor(isActive)} strokeWidth="2" />
@@ -570,6 +572,10 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed, setIsColl
 
   if (user.role !== "ПТО" || isTechAdmin) {
     sections.push({ id: "train-schedule", label: "Расписание рейсов" })
+  }
+
+  if (user.role === "Руководство" || isTechAdmin) {
+    sections.push({ id: "rp-bio-check", label: "Проверка биографий" })
   }
 
   if (canAccessManagement(user.role, sr)) {
