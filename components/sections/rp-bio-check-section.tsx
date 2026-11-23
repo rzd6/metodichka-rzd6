@@ -29,10 +29,6 @@ type Review = {
     findings: Array<{ severity: "critical" | "warning" | "note"; criterion: string; message: string; evidence: string }>
     summary: string
   }
-  decision?: "pending" | "approved" | "changes_requested"
-  decisionNote?: string
-  decidedBy?: string
-  decidedAt?: string
 }
 
 const fetcher = async (url: string) => {
@@ -48,11 +44,15 @@ function statusLabel(status: ReviewCheck["status"]) {
   return "Проверить"
 }
 
-function decisionLabel(decision?: Review["decision"]) {
-  if (decision === "approved") return "Одобрено руководителем"
-  if (decision === "changes_requested") return "Нужны исправления"
-  return "Ожидает решения"
+function findingCriterionLabel(criterion: string) {
+  if (/^(location|residence|current residence)$/i.test(criterion.trim())) return "Место проживания"
+  return criterion
 }
+
+function isPositiveResidenceNote(finding: Review["ai"]["findings"][number]) {
+  return /^(current residence specified correctly|location specified correctly)\.?$/i.test(finding.message.trim())
+}
+
 
 export function RpBioCheckSection() {
   const { theme } = useTheme()
@@ -75,7 +75,6 @@ export function RpBioCheckSection() {
   const [formError, setFormError] = useState("")
   const [isRzd, setIsRzd] = useState(true)
   const [busy, setBusy] = useState(false)
-  const [decisionNote, setDecisionNote] = useState("")
 
   async function runCheck(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -100,27 +99,6 @@ export function RpBioCheckSection() {
       const message = cause instanceof Error ? cause.message : "Проверка не выполнена"
       setFormError(message)
       toast.error(message)
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function saveDecision(decision: "approved" | "changes_requested") {
-    if (!selected) return
-    setBusy(true)
-    try {
-      const response = await fetch("/api/rp-bio-reviews", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reviewerId, reviewId: selected.id, decision, note: decisionNote }),
-      })
-      const result = await response.json()
-      if (!response.ok) throw new Error(result.error || "Не удалось сохранить решение")
-      setDecisionNote("")
-      await mutate()
-      toast.success("Решение сохранено")
-    } catch (cause) {
-      toast.error(cause instanceof Error ? cause.message : "Не удалось сохранить решение")
     } finally {
       setBusy(false)
     }
@@ -167,7 +145,7 @@ export function RpBioCheckSection() {
             </label>
             <div className="flex flex-col gap-3 rounded-xl border border-amber-500/25 bg-amber-500/[0.06] p-3 text-sm sm:flex-row sm:items-start">
               <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-500" aria-hidden="true" />
-              <p className={muted}>Результат ИИ — подсказка для проверки, а не автоматическое одобрение. Он не может достоверно доказать плагиат или авторство текста; окончательное решение принимает руководство.</p>
+              <p className={muted}>Результат ИИ — предварительная подсказка: сверьте замечания и цитаты с текстом биографии. ИИ не может достоверно доказать плагиат или авторство текста.</p>
             </div>
             <Button type="submit" disabled={busy || !reviewerId} style={{ backgroundColor: color }} className="w-fit text-black hover:opacity-90">
               {busy ? <LoaderCircle className="animate-spin" data-icon="inline-start" /> : <BookOpenCheck data-icon="inline-start" />}
@@ -188,9 +166,9 @@ export function RpBioCheckSection() {
             {error && <p className="py-3 text-sm text-red-400" role="alert">{error.message}</p>}
             {!isLoading && !error && reviews.length === 0 && <p className={`py-4 text-sm ${muted}`}>Пока нет проверок. Вставьте ссылку выше, чтобы начать.</p>}
             {reviews.map((review) => (
-              <button key={review.id} type="button" onClick={() => { setSelectedId(review.id); setDecisionNote(review.decisionNote ?? "") }} className={`flex w-full flex-col gap-1 rounded-xl border p-3 text-left transition-colors ${selected?.id === review.id ? "border-current bg-white/[0.06]" : dark ? "border-white/10 hover:bg-white/[0.04]" : "border-black/10 hover:bg-black/[0.03]"}`} style={selected?.id === review.id ? { borderColor: color } : undefined}>
+              <button key={review.id} type="button" onClick={() => setSelectedId(review.id)} className={`flex w-full flex-col gap-1 rounded-xl border p-3 text-left transition-colors ${selected?.id === review.id ? "border-current bg-white/[0.06]" : dark ? "border-white/10 hover:bg-white/[0.04]" : "border-black/10 hover:bg-black/[0.03]"}`} style={selected?.id === review.id ? { borderColor: color } : undefined}>
                 <span className="line-clamp-2 text-sm font-medium">{review.title}</span>
-                <span className={`text-xs ${muted}`}>{new Date(review.createdAt).toLocaleString("ru-RU")} · {decisionLabel(review.decision)}</span>
+                <span className={`text-xs ${muted}`}>{new Date(review.createdAt).toLocaleString("ru-RU")}</span>
               </button>
             ))}
           </CardContent>
@@ -230,30 +208,18 @@ export function RpBioCheckSection() {
                 </ul>
               </div>
 
-              {selected.ai.findings.length > 0 && <div>
-                <h3 className="mb-2 font-semibold">Замечания ИИ</h3>
+              {selected.ai.findings.filter((finding) => !isPositiveResidenceNote(finding)).length > 0 && <div>
+                <h3 className="mb-2 font-semibold">Пояснения по биографии</h3>
                 <ul className="flex flex-col gap-2">
-                  {selected.ai.findings.map((finding, index) => (
+                  {selected.ai.findings.filter((finding) => !isPositiveResidenceNote(finding)).map((finding, index) => (
                     <li key={`${finding.criterion}-${index}`} className={`rounded-xl border p-3 text-sm ${finding.severity === "critical" ? "border-red-500/25 bg-red-500/[0.05]" : finding.severity === "warning" ? "border-amber-500/25 bg-amber-500/[0.05]" : dark ? "border-white/10 bg-white/[0.02]" : "border-black/10 bg-black/[0.02]"}`}>
-                      <div className="font-medium">{finding.criterion}</div>
+                      <div className="font-medium">{findingCriterionLabel(finding.criterion)}</div>
                       <p className={`mt-1 ${muted}`}>{finding.message}</p>
                       {finding.evidence && <blockquote className={`mt-2 border-l-2 pl-2 text-xs italic ${muted}`}>{finding.evidence}</blockquote>}
                     </li>
                   ))}
                 </ul>
               </div>}
-
-              <div className={`rounded-xl border p-4 ${dark ? "border-white/10" : "border-black/10"}`}>
-                <h3 className="font-semibold">Решение руководителя</h3>
-                <p className={`mt-1 text-sm ${muted}`}>Текущий статус: {decisionLabel(selected.decision)}{selected.decidedBy ? ` · ${selected.decidedBy}` : ""}</p>
-                <div className="mt-3 flex flex-col gap-3">
-                  <div className="flex flex-col gap-2"><Label htmlFor="decision-note">Комментарий (необязательно)</Label><Textarea id="decision-note" maxLength={1000} value={decisionNote} onChange={(event) => setDecisionNote(event.target.value)} placeholder="Что требуется проверить или исправить…" /></div>
-                  <div className="flex flex-wrap gap-2">
-                    <Button type="button" disabled={busy} onClick={() => saveDecision("approved")} style={{ backgroundColor: color }} className="text-black hover:opacity-90">Одобрить</Button>
-                    <Button type="button" variant="outline" disabled={busy} onClick={() => saveDecision("changes_requested")}>Запросить исправления</Button>
-                  </div>
-                </div>
-              </div>
             </CardContent>
           </Card>
         ) : (

@@ -87,11 +87,12 @@ function buildRuleChecks(text: string, isRzd: boolean, createdAt: Date, hasTopic
   const titleMatches = /^Биография\s+[\p{L}-]+\s+[\p{L}-]+$/u.test(title)
   checks.push({ criterion: "Заголовок темы «Биография Имя Фамилия»", status: !title ? "review" : titleMatches ? "pass" : "fail", details: !title ? "Заголовок не удалось получить автоматически; сверьте формат вручную." : titleMatches ? "Заголовок соответствует указанному в правилах формату." : "Проверьте формат «Биография Имя Фамилия», без подчёркиваний." })
   for (const field of fields) {
-    const present = new RegExp(`(?:^|\\n)\\s*\\d*\\.?\\s*${field}:`, "im").test(text)
-    checks.push({ criterion: `Поле «${field}»`, status: present ? "pass" : "fail", details: present ? "Поле найдено в биографии." : "Не найдено обязательное поле формы." })
+    const labelPattern = field === "Возраст" ? "возв?раст|возрост" : field
+    const present = new RegExp(`(?:^|\\n)\\s*\\d*\\.?\\s*(?:${labelPattern}):`, "im").test(text)
+    checks.push({ criterion: `Поле «${field}»`, status: present ? "pass" : "fail", details: present ? "Поле найдено в биографии; учтены очевидные опечатки в названии." : "Не найдено обязательное поле формы." })
   }
 
-  const residenceLine = text.match(/(?:Место текущего проживания|проживани[ея])\s*:?\s*([^\n]{0,160})/i)?.[1] ?? ""
+  const residenceLine = text.match(/(?:место\s+(?:текущего\s+)?проживания|прожива(?:ю|ет|ют|ем|ете))\s*:?\s*([^\n]{0,200})/iu)?.[1] ?? ""
   const cityFound = allowedCities.find((city) => new RegExp(city, "i").test(residenceLine))
   checks.push({
     criterion: "Место проживания в Республике Провинция",
@@ -102,8 +103,8 @@ function buildRuleChecks(text: string, isRzd: boolean, createdAt: Date, hasTopic
   const firstPersonFound = /(?:^|[^\p{L}])(?:я|мне|меня|мой|моя|моё|мои|мы|наш|наша|наше|наши)(?=$|[^\p{L}])/iu.test(text)
   checks.push({ criterion: "Повествование от первого лица", status: firstPersonFound ? "review" : "review", details: firstPersonFound ? "Есть признаки первого лица; грамматическую форму оценит ИИ." : "Автоматически не найдены явные местоимения первого лица; проверьте текст вручную." })
 
-  const dobLine = text.match(/Дата и место рождения\s*:?\s*([^\n]+)/i)?.[1] ?? ""
-  const ageLine = text.match(/Возраст\s*:?\s*([^\n]+)/i)?.[1] ?? ""
+  const dobLine = text.match(/(?:Дата и место рождения|Дата рождения)\s*:?\s*([^\n]+)/i)?.[1] ?? ""
+  const ageLine = text.match(/(?:Возв?раст|Возрост)\s*:?\s*([^\n]+)/i)?.[1] ?? ""
   const dobMatch = dobLine.match(/(\d{1,2})[./-](\d{1,2})[./-](\d{4})/)
   const ageMatch = ageLine.match(/\b(\d{1,3})\b/)
   let ageStatus: "pass" | "fail" | "review" = "review"
@@ -123,7 +124,12 @@ function buildRuleChecks(text: string, isRzd: boolean, createdAt: Date, hasTopic
 
   if (isRzd) {
     const railwayStudy = /(?:университет|институт|колледж|техникум|училищ|образован|поступил|окончил|диплом)[^\n]{0,180}(?:железн|путей сообщения|локомотив|машинист|железнодорож|ржд)|(?:железн|путей сообщения|локомотив|машинист|железнодорож)[^\n]{0,180}(?:университет|институт|колледж|техникум|училищ|специальност|образован|диплом)/i.test(text)
-    checks.push({ criterion: "Железнодорожное образование для РЖД", status: railwayStudy ? "review" : "fail", details: railwayStudy ? "Похоже, упомянуты железнодорожное обучение и специальность; проверьте, что это полноценная часть биографии." : "Не найдено обучение по железнодорожной специальности или в профильном учебном заведении." })
+    const recognizedTechnicalEducation = /Мирнинск(?:ий|ого)\s+Техническ(?:ий|ого)\s+университет[\s\S]{0,240}(?:получил\w*|высш\w*|диплом|окончил\w*|закончил\w*)/iu.test(text)
+    checks.push({
+      criterion: "Железнодорожное образование для РЖД",
+      status: recognizedTechnicalEducation ? "pass" : railwayStudy ? "review" : "fail",
+      details: recognizedTechnicalEducation ? "Найдено обучение в Мирнинском Техническом университете и указано получение высшего технического образования." : railwayStudy ? "Похоже, упомянуто профильное обучение; проверьте название специальности и учебного заведения." : "Не найдено обучение по железнодорожной специальности или в профильном учебном заведении.",
+    })
   }
   return checks
 }
@@ -144,6 +150,33 @@ async function authorize(reviewerId: string | null) {
 
 function responseError(error: unknown, status = 400) {
   return NextResponse.json({ error: error instanceof Error ? error.message : "Не удалось выполнить запрос" }, { status })
+}
+
+function providerStatusCode(error: unknown): number | undefined {
+  if (!error || typeof error !== "object" || !("statusCode" in error)) return undefined
+  const statusCode = Number(error.statusCode)
+  return Number.isFinite(statusCode) ? statusCode : undefined
+}
+
+async function generateBioReview(system: string, prompt: string): Promise<z.infer<typeof analysisSchema>> {
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const result = await generateText({
+        model: groq("openai/gpt-oss-20b"),
+        output: Output.object({ schema: analysisSchema }),
+        system,
+        prompt,
+        maxRetries: 1,
+      })
+      return result.output
+    } catch (error) {
+      const statusCode = providerStatusCode(error)
+      const isPermanentFailure = statusCode === 429 || (statusCode !== undefined && statusCode < 500)
+      if (attempt === 1 || isPermanentFailure) throw error
+      await new Promise((resolve) => setTimeout(resolve, 500))
+    }
+  }
+  throw new Error("Не удалось получить результат проверки")
 }
 
 export async function GET(request: NextRequest) {
@@ -197,13 +230,18 @@ export async function POST(request: NextRequest) {
 
     let output: z.infer<typeof analysisSchema>
     try {
-      const result = await generateText({
-        model: groq("openai/gpt-oss-20b"),
-        output: Output.object({ schema: analysisSchema }),
-        system: "Ты помощник руководителя для проверки RP-биографий на соответствие правилам форума MTA Province. Ты не одобряешь и не отклоняешь биографии. Не выдумывай факты и приводи короткое дословное подтверждение из текста. Учитывай: тема оформляется как «Биография Имя Фамилия» кириллицей или латиницей без подчёркивания; повествование от первого лица; биография должна раскрывать дату и место рождения, семью, карьеру, хронологию, нынешнее проживание, особенности характера, хобби и уникальные детали; место проживания персонажа — один из городов/посёлков Республики Провинция; запрещены суперспособности, плагиат и пропаганда религиозных/националистических взглядов. Для РЖД дополнительно проверь профильное железнодорожное образование и специальность. Проверяй отсутствие или слабое раскрытие пункта, возраст относительно даты рождения (но не делай вывод без даты публикации), противоречия и нарушения. Проверка ИИ не доказывает плагиат или генерацию текста; не обвиняй в этом без доказательств. Для неуверенности укажи uncertain/review.",
-        prompt: `Ссылка на тему: ${url.href}\nЦель проверки РЖД: ${isRzd ? "да" : "нет"}\n\nТекст темы:\n${text}`,
-      })
-      output = result.output
+      const system = [
+        "Ты помощник руководителя для проверки RP-биографий на соответствие правилам форума MTA Province. Ты не одобряешь и не отклоняешь биографии. Не выдумывай факты и приводи короткое дословное подтверждение из текста.",
+        "Проверяй форму, повествование от первого лица, дату и место рождения, семью, карьеру, хронологию, нынешнее проживание, характер, хобби и уникальные детали; учитывай требования к городам Республики Провинция и правила о суперспособностях, плагиате и пропаганде.",
+        "Все текстовые значения ответа — summary, criterion, message и evidence — пиши только по-русски. Выводи только реальные замечания; корректный пункт не оформляй как замечание. Объясняй каждый пункт конкретно и простыми словами, указывай дословную короткую цитату из биографии.",
+        "Учитывай очевидные опечатки в заголовках полей: например, «Возвраст» означает «Возраст». Фраза «Проживаю в Республике Провинция, в городе Приволжск» — корректное указание места проживания; не отмечай её как ошибку.",
+        "Если цель проверки РЖД, проверяй профильное образование и специальность. Упоминание Мирнинского Технического университета вместе с получением высшего технического образования считай подтверждением образования для этого критерия; не требуй буквального слова «железнодорожный» в такой формулировке.",
+        "Проверяй возраст только при наличии даты публикации и даты рождения. ИИ не доказывает плагиат или генерацию текста; не обвиняй без доказательств. При сомнении прямо обозначь, что нужен ручной просмотр.",
+      ].join(" ")
+      output = await generateBioReview(
+        system,
+        `Ссылка на тему: ${url.href}\nЦель проверки РЖД: ${isRzd ? "да" : "нет"}\n\nТекст темы:\n${text}`,
+      )
     } catch (error) {
       const statusCode = error && typeof error === "object" && "statusCode" in error
         ? Number(error.statusCode)
@@ -232,31 +270,6 @@ export async function POST(request: NextRequest) {
     }
     const { error } = await getSupabaseServer().from("app_settings").upsert({ key: `${REVIEW_KEY_PREFIX}${id}`, value: JSON.stringify(review), updated_at: createdAt }, { onConflict: "key" })
     if (error) throw error
-    return NextResponse.json({ review })
-  } catch (error) {
-    return responseError(error, 500)
-  }
-}
-
-export async function PATCH(request: NextRequest) {
-  try {
-    const body = await request.json()
-    const reviewer = await authorize(typeof body.reviewerId === "string" ? body.reviewerId : null)
-    if (!reviewer) return responseError(new Error("Доступ только для руководства"), 403)
-    if (typeof body.reviewId !== "string" || !/^[0-9a-f-]{36}$/i.test(body.reviewId)) return responseError(new Error("Некорректный идентификатор проверки"))
-    if (!["pending", "approved", "changes_requested"].includes(body.decision)) return responseError(new Error("Некорректный итоговый статус"))
-    const db = getSupabaseServer()
-    const key = `${REVIEW_KEY_PREFIX}${body.reviewId}`
-    const { data, error } = await db.from("app_settings").select("value").eq("key", key).maybeSingle()
-    if (error) throw error
-    if (!data?.value) return responseError(new Error("Проверка не найдена"), 404)
-    const review = JSON.parse(data.value)
-    review.decision = body.decision
-    review.decisionNote = typeof body.note === "string" ? body.note.slice(0, 1000) : ""
-    review.decidedBy = reviewer.nickname
-    review.decidedAt = new Date().toISOString()
-    const { error: saveError } = await db.from("app_settings").upsert({ key, value: JSON.stringify(review), updated_at: review.decidedAt }, { onConflict: "key" })
-    if (saveError) throw saveError
     return NextResponse.json({ review })
   } catch (error) {
     return responseError(error, 500)
