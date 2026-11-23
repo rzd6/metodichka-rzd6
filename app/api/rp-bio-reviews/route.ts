@@ -199,11 +199,14 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const reviewer = await authorize(typeof body.reviewerId === "string" ? body.reviewerId : null)
     if (!reviewer) return responseError(new Error("Доступ только для руководства"), 403)
-    let url: URL
-    try { url = normalizeForumUrl(body.url) } catch (error) { return responseError(error, 400) }
     const pastedText = typeof body.bioText === "string" ? body.bioText.trim().slice(0, 60_000) : ""
+    let url: URL | null = null
+    if (typeof body.url === "string" && body.url.trim()) {
+      try { url = normalizeForumUrl(body.url.trim()) } catch (error) { return responseError(error, 400) }
+    }
     let pageHtml = ""
     if (!pastedText) {
+      if (!url) return responseError(new Error("Вставьте текст биографии для проверки."), 400)
       let forumResponse: Response
       try {
         forumResponse = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0 (compatible; RZD-BioReview/1.0)" }, signal: AbortSignal.timeout(12_000), redirect: "manual" })
@@ -219,11 +222,16 @@ export async function POST(request: NextRequest) {
     }
 
     const isRzd = body.isRzd === true
-    const topicDateValue = pageHtml.match(/<time[^>]*datetime=["']([^"']+)["']/i)?.[1]
-    const topicCreatedAt = topicDateValue && !Number.isNaN(new Date(topicDateValue).getTime()) ? new Date(topicDateValue) : new Date()
+    const topicDate = typeof body.topicDate === "string" ? body.topicDate : ""
+    const parsedTopicDate = /^\d{4}-\d{2}-\d{2}$/.test(topicDate) ? new Date(`${topicDate}T12:00:00.000Z`) : null
+    if (!parsedTopicDate || Number.isNaN(parsedTopicDate.getTime()) || parsedTopicDate.toISOString().slice(0, 10) !== topicDate || topicDate > new Date().toISOString().slice(0, 10)) {
+      return responseError(new Error("Укажите корректную дату публикации, не позднее сегодняшнего дня."), 400)
+    }
+    const topicCreatedAt = parsedTopicDate
     const title = (typeof body.topicTitle === "string" ? body.topicTitle : pageHtml.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] ?? "")
       .replace(/<[^>]+>/g, "").replace(/&amp;/gi, "&").split(" - ")[0].trim().slice(0, 200)
-    const ruleChecks = buildRuleChecks(text, isRzd, topicCreatedAt, Boolean(topicDateValue), title)
+    if (!title) return responseError(new Error("Укажите заголовок темы."), 400)
+    const ruleChecks = buildRuleChecks(text, isRzd, topicCreatedAt, true, title)
     if (!process.env.GROQ_API_KEY) {
       return responseError(new Error("Не настроен ключ Groq API. Добавьте GROQ_API_KEY в переменные окружения проекта."), 503)
     }
@@ -240,7 +248,7 @@ export async function POST(request: NextRequest) {
       ].join(" ")
       output = await generateBioReview(
         system,
-        `Ссылка на тему: ${url.href}\nЦель проверки РЖД: ${isRzd ? "да" : "нет"}\n\nТекст темы:\n${text}`,
+        `Заголовок темы: ${title}\nДата публикации: ${topicDate}\nСсылка на тему: ${url?.href ?? "не указана"}\nЦель проверки РЖД: ${isRzd ? "да" : "нет"}\n\nТекст темы:\n${text}`,
       )
     } catch (error) {
       const statusCode = error && typeof error === "object" && "statusCode" in error
@@ -259,7 +267,8 @@ export async function POST(request: NextRequest) {
     const createdAt = new Date().toISOString()
     const review = {
       id,
-      url: url.href,
+      url: url?.href ?? "",
+      topicDate,
       title,
       reviewerId: reviewer.id,
       reviewerName: reviewer.nickname,

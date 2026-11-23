@@ -16,6 +16,7 @@ type ReviewCheck = { criterion: string; status: "pass" | "fail" | "review"; deta
 type Review = {
   id: string
   url: string
+  topicDate?: string
   title: string
   reviewerId: string
   reviewerName: string
@@ -69,8 +70,8 @@ export function RpBioCheckSection() {
   const reviews = useMemo(() => data?.reviews ?? [], [data])
   const [selectedId, setSelectedId] = useState("")
   const selected = reviews.find((review) => review.id === selectedId) ?? reviews[0]
-  const [url, setUrl] = useState("")
   const [topicTitle, setTopicTitle] = useState("")
+  const [topicDate, setTopicDate] = useState("")
   const [bioText, setBioText] = useState("")
   const [formError, setFormError] = useState("")
   const [isRzd, setIsRzd] = useState(true)
@@ -78,19 +79,19 @@ export function RpBioCheckSection() {
 
   async function runCheck(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!reviewerId || !url.trim()) return
+    if (!reviewerId || !topicTitle.trim() || !topicDate || !bioText.trim()) return
     setBusy(true)
     setFormError("")
     try {
       const response = await fetch("/api/rp-bio-reviews", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reviewerId, url: url.trim(), topicTitle: topicTitle.trim(), bioText: bioText.trim(), isRzd }),
+        body: JSON.stringify({ reviewerId, topicTitle: topicTitle.trim(), topicDate, bioText: bioText.trim(), isRzd }),
       })
       const result = await response.json()
       if (!response.ok) throw new Error(result.error || "Проверка не выполнена")
-      setUrl("")
       setTopicTitle("")
+      setTopicDate("")
       setBioText("")
       setSelectedId(result.review.id)
       await mutate()
@@ -122,21 +123,21 @@ export function RpBioCheckSection() {
       <Card className={`rounded-2xl ${surface}`}>
         <CardHeader className="pb-3">
           <h2 className="flex items-center gap-2 text-lg font-semibold"><ShieldCheck className="size-5" style={{ color }} aria-hidden="true" />Новая проверка</h2>
-          <p className={`text-sm ${muted}`}>Добавьте ссылку на открытую тему форума. Текст биографии будет проверен на сервере.</p>
+          <p className={`text-sm ${muted}`}>Укажите заголовок и дату публикации, затем вставьте текст биографии для проверки.</p>
         </CardHeader>
         <CardContent>
           <form className="flex flex-col gap-4" onSubmit={runCheck}>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="bio-url">Ссылка на биографию</Label>
-              <Input id="bio-url" type="url" required maxLength={500} placeholder="https://forum.gtaprovince.ru/topic/…" value={url} onChange={(event) => setUrl(event.target.value)} />
+              <Label htmlFor="bio-title">Заголовок темы</Label>
+              <Input id="bio-title" required maxLength={200} placeholder="Биография Имя Фамилия" value={topicTitle} onChange={(event) => setTopicTitle(event.target.value)} />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="bio-title">Заголовок темы (необязательно)</Label>
-              <Input id="bio-title" maxLength={200} placeholder="Биография Имя Фамилия" value={topicTitle} onChange={(event) => setTopicTitle(event.target.value)} />
+              <Label htmlFor="bio-date">Дата публикации</Label>
+              <Input id="bio-date" type="date" required value={topicDate} onChange={(event) => setTopicDate(event.target.value)} />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="bio-text">Текст биографии (если форум не загружается автоматически)</Label>
-              <Textarea id="bio-text" maxLength={60000} rows={7} placeholder="Можно вставить текст первого сообщения темы. Если оставить поле пустым, система попробует загрузить его по ссылке." value={bioText} onChange={(event) => setBioText(event.target.value)} />
+              <Label htmlFor="bio-text">Текст биографии</Label>
+              <Textarea id="bio-text" required maxLength={60000} rows={7} placeholder="Вставьте текст первого сообщения темы форума." value={bioText} onChange={(event) => setBioText(event.target.value)} />
             </div>
             {formError && <p className="rounded-lg border border-red-500/30 bg-red-500/[0.06] p-3 text-sm text-red-400" role="alert">{formError}</p>}
             <label className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 text-sm ${dark ? "border-white/10" : "border-black/10"}`}>
@@ -164,7 +165,7 @@ export function RpBioCheckSection() {
           <CardContent className="flex flex-col gap-2">
             {isLoading && <p className={`py-4 text-sm ${muted}`} role="status">Загружаем историю…</p>}
             {error && <p className="py-3 text-sm text-red-400" role="alert">{error.message}</p>}
-            {!isLoading && !error && reviews.length === 0 && <p className={`py-4 text-sm ${muted}`}>Пока нет проверок. Вставьте ссылку выше, чтобы начать.</p>}
+            {!isLoading && !error && reviews.length === 0 && <p className={`py-4 text-sm ${muted}`}>Пока нет проверок. Заполните данные биографии выше, чтобы начать.</p>}
             {reviews.map((review) => (
               <button key={review.id} type="button" onClick={() => setSelectedId(review.id)} className={`flex w-full flex-col gap-1 rounded-xl border p-3 text-left transition-colors ${selected?.id === review.id ? "border-current bg-white/[0.06]" : dark ? "border-white/10 hover:bg-white/[0.04]" : "border-black/10 hover:bg-black/[0.03]"}`} style={selected?.id === review.id ? { borderColor: color } : undefined}>
                 <span className="line-clamp-2 text-sm font-medium">{review.title}</span>
@@ -179,11 +180,11 @@ export function RpBioCheckSection() {
             <CardHeader className="gap-2 pb-3 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
                 <h2 className="text-lg font-semibold">Результаты проверки</h2>
-                <p className={`mt-1 text-sm ${muted}`}>Проверил(а): {selected.reviewerName} · {new Date(selected.createdAt).toLocaleString("ru-RU")}</p>
+                <p className={`mt-1 text-sm ${muted}`}>Дата публикации: {selected.topicDate ? new Date(`${selected.topicDate}T12:00:00`).toLocaleDateString("ru-RU") : "не указана"} · Проверил(а): {selected.reviewerName} · {new Date(selected.createdAt).toLocaleString("ru-RU")}</p>
               </div>
-              <a href={selected.url} target="_blank" rel="noopener noreferrer" className="inline-flex shrink-0 items-center gap-1 text-sm underline underline-offset-4" style={{ color }}>
+              {selected.url && <a href={selected.url} target="_blank" rel="noopener noreferrer" className="inline-flex shrink-0 items-center gap-1 text-sm underline underline-offset-4" style={{ color }}>
                 Открыть тему <ExternalLink className="size-3.5" aria-hidden="true" />
-              </a>
+              </a>}
             </CardHeader>
             <CardContent className="flex flex-col gap-5">
               <div className={`rounded-xl border p-4 ${dark ? "border-white/10 bg-white/[0.03]" : "border-black/10 bg-black/[0.02]"}`}>
@@ -226,7 +227,7 @@ export function RpBioCheckSection() {
           <Card className={`rounded-2xl ${surface}`}>
             <CardContent className={`flex min-h-56 flex-col items-center justify-center gap-2 text-center ${muted}`}>
               <FileSearch className="size-8 opacity-60" aria-hidden="true" />
-              <p>Выберите проверку из списка или добавьте ссылку на новую биографию.</p>
+              <p>Выберите проверку из списка или заполните данные новой биографии.</p>
             </CardContent>
           </Card>
         )}
