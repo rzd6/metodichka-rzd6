@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import useSWR from "swr"
-import { AlertTriangle, BadgeCheck, BookOpenCheck, ExternalLink, FileSearch, LoaderCircle, ShieldCheck } from "lucide-react"
+import { AlertTriangle, BadgeCheck, BookOpenCheck, ExternalLink, FileSearch, LoaderCircle, ShieldCheck, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { useTheme } from "@/contexts/theme-context"
 import { getThemeColor } from "@/lib/theme-utils"
@@ -72,10 +72,30 @@ export function RpBioCheckSection() {
   const selected = reviews.find((review) => review.id === selectedId) ?? reviews[0]
   const [topicTitle, setTopicTitle] = useState("")
   const [topicDate, setTopicDate] = useState("")
+  const [topicUrl, setTopicUrl] = useState("")
   const [bioText, setBioText] = useState("")
   const [formError, setFormError] = useState("")
   const [isRzd, setIsRzd] = useState(true)
   const [busy, setBusy] = useState(false)
+
+  async function deleteReview(review: Review) {
+    if (review.reviewerId !== reviewerId || !window.confirm(`Удалить проверку «${review.title}»?`)) return
+    try {
+      const response = await fetch("/api/rp-bio-reviews", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reviewerId, id: review.id }),
+      })
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.error || "Не удалось удалить проверку")
+      if (selectedId === review.id) setSelectedId("")
+      await mutate()
+      toast.success("Проверка удалена")
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : "Не удалось удалить проверку"
+      toast.error(message)
+    }
+  }
 
   async function runCheck(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -86,12 +106,13 @@ export function RpBioCheckSection() {
       const response = await fetch("/api/rp-bio-reviews", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reviewerId, topicTitle: topicTitle.trim(), topicDate, bioText: bioText.trim(), isRzd }),
+        body: JSON.stringify({ reviewerId, topicTitle: topicTitle.trim(), topicDate, topicUrl: topicUrl.trim(), bioText: bioText.trim(), isRzd }),
       })
       const result = await response.json()
       if (!response.ok) throw new Error(result.error || "Проверка не выполнена")
       setTopicTitle("")
       setTopicDate("")
+      setTopicUrl("")
       setBioText("")
       setSelectedId(result.review.id)
       await mutate()
@@ -123,10 +144,14 @@ export function RpBioCheckSection() {
       <Card className={`rounded-2xl ${surface}`}>
         <CardHeader className="pb-3">
           <h2 className="flex items-center gap-2 text-lg font-semibold"><ShieldCheck className="size-5" style={{ color }} aria-hidden="true" />Новая проверка</h2>
-          <p className={`text-sm ${muted}`}>Укажите заголовок и дату публикации, затем вставьте текст биографии для проверки.</p>
+          <p className={`text-sm ${muted}`}>При желании добавьте ссылку на тему, укажите заголовок и дату публикации и вставьте текст биографии.</p>
         </CardHeader>
         <CardContent>
           <form className="flex flex-col gap-4" onSubmit={runCheck}>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="bio-url">Ссылка на тему (необязательно)</Label>
+              <Input id="bio-url" type="url" maxLength={500} placeholder="https://forum.gtaprovince.ru/topic/…" value={topicUrl} onChange={(event) => setTopicUrl(event.target.value)} />
+            </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="bio-title">Заголовок темы</Label>
               <Input id="bio-title" required maxLength={200} placeholder="Биография Имя Фамилия" value={topicTitle} onChange={(event) => setTopicTitle(event.target.value)} />
@@ -167,10 +192,18 @@ export function RpBioCheckSection() {
             {error && <p className="py-3 text-sm text-red-400" role="alert">{error.message}</p>}
             {!isLoading && !error && reviews.length === 0 && <p className={`py-4 text-sm ${muted}`}>Пока нет проверок. Заполните данные биографии выше, чтобы начать.</p>}
             {reviews.map((review) => (
-              <button key={review.id} type="button" onClick={() => setSelectedId(review.id)} className={`flex w-full flex-col gap-1 rounded-xl border p-3 text-left transition-colors ${selected?.id === review.id ? "border-current bg-white/[0.06]" : dark ? "border-white/10 hover:bg-white/[0.04]" : "border-black/10 hover:bg-black/[0.03]"}`} style={selected?.id === review.id ? { borderColor: color } : undefined}>
-                <span className="line-clamp-2 text-sm font-medium">{review.title}</span>
-                <span className={`text-xs ${muted}`}>{new Date(review.createdAt).toLocaleString("ru-RU")}</span>
-              </button>
+              <div key={review.id} className={`flex items-center gap-2 rounded-xl border p-2 transition-colors ${selected?.id === review.id ? "bg-white/[0.06]" : dark ? "border-white/10 hover:bg-white/[0.04]" : "border-black/10 hover:bg-black/[0.03]"}`} style={selected?.id === review.id ? { borderColor: color } : undefined}>
+                <button type="button" onClick={() => setSelectedId(review.id)} className="flex min-w-0 flex-1 flex-col gap-1 rounded-lg p-1 text-left">
+                  <span className="line-clamp-2 text-sm font-medium">{review.title}</span>
+                  <span className={`text-xs ${muted}`}>{new Date(review.createdAt).toLocaleString("ru-RU")}</span>
+                </button>
+                {review.url && <a href={review.url} target="_blank" rel="noopener noreferrer" aria-label={`Открыть тему: ${review.title}`} className="rounded-md p-2 hover:bg-white/10" style={{ color }}>
+                  <ExternalLink className="size-4" aria-hidden="true" />
+                </a>}
+                {review.reviewerId === reviewerId && <Button type="button" variant="ghost" size="icon" aria-label={`Удалить проверку: ${review.title}`} onClick={() => void deleteReview(review)} className="shrink-0 text-red-400 hover:text-red-300">
+                  <Trash2 data-icon="inline-start" />
+                </Button>}
+              </div>
             ))}
           </CardContent>
         </Card>
@@ -191,7 +224,7 @@ export function RpBioCheckSection() {
                 <div className="mb-2 flex items-center gap-2 font-semibold"><BadgeCheck className="size-4" style={{ color }} aria-hidden="true" />Сводка ИИ</div>
                 <p className={`text-sm leading-relaxed ${muted}`}>{selected.ai.summary}</p>
                 <div className={`mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs ${muted}`}>
-                  <span>1-е лицо: {selected.ai.firstPerson === "yes" ? "похоже, да" : selected.ai.firstPerson === "no" ? "есть замечания" : "нужна ручная проверка"}</span>
+                  <span>1-е лицо: {selected.ai.firstPerson === "yes" ? "Да" : selected.ai.firstPerson === "no" ? "Нет" : "нужна ручная проверка"}</span>
                   <span>Хронология: {selected.ai.chronologicalCoherence === "yes" ? "логична" : selected.ai.chronologicalCoherence === "no" ? "есть несостыковки" : "неоднозначна"}</span>
                   {selected.isRzd && <span>Ж/д образование: {selected.ai.railwayEducation === "yes" ? "упоминается" : selected.ai.railwayEducation === "no" ? "не найдено" : "проверьте вручную"}</span>}
                 </div>

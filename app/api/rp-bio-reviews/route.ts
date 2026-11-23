@@ -28,7 +28,7 @@ const fields = [
 ]
 
 const analysisSchema = z.object({
-  firstPerson: z.enum(["yes", "no", "uncertain"]),
+  firstPerson: z.enum(["yes", "no"]),
   chronologicalCoherence: z.enum(["yes", "no", "uncertain"]),
   railwayEducation: z.enum(["yes", "no", "uncertain", "not_applicable"]),
   findings: z.array(z.object({
@@ -125,10 +125,11 @@ function buildRuleChecks(text: string, isRzd: boolean, createdAt: Date, hasTopic
   if (isRzd) {
     const railwayStudy = /(?:университет|институт|колледж|техникум|училищ|образован|поступил|окончил|диплом)[^\n]{0,180}(?:железн|путей сообщения|локомотив|машинист|железнодорож|ржд)|(?:железн|путей сообщения|локомотив|машинист|железнодорож)[^\n]{0,180}(?:университет|институт|колледж|техникум|училищ|специальност|образован|диплом)/i.test(text)
     const recognizedTechnicalEducation = /Мирнинск(?:ий|ого)\s+Техническ(?:ий|ого)\s+университет[\s\S]{0,240}(?:получил\w*|высш\w*|диплом|окончил\w*|закончил\w*)/iu.test(text)
+    const mediumTechnicalEducation = /средн\w*\s+(?:профессиональн\w*\s+)?техническ\w*\s+образован/iu.test(text)
     checks.push({
       criterion: "Железнодорожное образование для РЖД",
-      status: recognizedTechnicalEducation ? "pass" : railwayStudy ? "review" : "fail",
-      details: recognizedTechnicalEducation ? "Найдено обучение в Мирнинском Техническом университете и указано получение высшего технического образования." : railwayStudy ? "Похоже, упомянуто профильное обучение; проверьте название специальности и учебного заведения." : "Не найдено обучение по железнодорожной специальности или в профильном учебном заведении.",
+      status: recognizedTechnicalEducation ? "pass" : railwayStudy || mediumTechnicalEducation ? "review" : "fail",
+      details: recognizedTechnicalEducation ? "Найдено обучение в Мирнинском Техническом университете и указано получение высшего технического образования." : mediumTechnicalEducation ? "В биографии прямо указано среднее техническое образование. Оно распознано, но профильность специальности и соответствие требуемому уровню нужно сверить с правилами РЖД." : railwayStudy ? "Похоже, упомянуто профильное обучение; проверьте название специальности и учебного заведения." : "Не найдено обучение по железнодорожной специальности или в профильном учебном заведении.",
     })
   }
   return checks
@@ -201,8 +202,9 @@ export async function POST(request: NextRequest) {
     if (!reviewer) return responseError(new Error("Доступ только для руководства"), 403)
     const pastedText = typeof body.bioText === "string" ? body.bioText.trim().slice(0, 60_000) : ""
     let url: URL | null = null
-    if (typeof body.url === "string" && body.url.trim()) {
-      try { url = normalizeForumUrl(body.url.trim()) } catch (error) { return responseError(error, 400) }
+    const rawUrl = typeof body.topicUrl === "string" ? body.topicUrl : body.url
+    if (typeof rawUrl === "string" && rawUrl.trim()) {
+      try { url = normalizeForumUrl(rawUrl.trim()) } catch (error) { return responseError(error, 400) }
     }
     let pageHtml = ""
     if (!pastedText) {
@@ -240,10 +242,10 @@ export async function POST(request: NextRequest) {
     try {
       const system = [
         "Ты помощник руководителя для проверки RP-биографий на соответствие правилам форума MTA Province. Ты не одобряешь и не отклоняешь биографии. Не выдумывай факты и приводи короткое дословное подтверждение из текста.",
-        "Проверяй форму, повествование от первого лица, дату и место рождения, семью, карьеру, хронологию, нынешнее проживание, характер, хобби и уникальные детали; учитывай требования к городам Республики Провинция и правила о суперспособностях, плагиате и пропаганде.",
+        "Проверяй форму, повествование от первого лица, дату и место рождения, семью, карьеру, хронологию, нынешнее проживание, характер, хобби и уникальные детали; учитывай требования к городам Республики Провинция и правила о суперспособностях, плагиате и пропаганде. Для firstPerson всегда выбери только yes или no: yes, если основное повествование биографии ведётся от первого лица; no, если повествование ведётся от третьего лица. Не используй неопределённый ответ.",
         "Все текстовые значения ответа — summary, criterion, message и evidence — пиши только по-русски. Выводи только реальные замечания; корректный пункт не оформляй как замечание. Объясняй каждый пункт конкретно и простыми словами, указывай дословную короткую цитату из биографии.",
         "Учитывай очевидные опечатки в заголовках полей: например, «Возвраст» означает «Возраст». Фраза «Проживаю в Республике Провинция, в городе Приволжск» — корректное указание места проживания; не отмечай её как ошибку.",
-        "Если цель проверки РЖД, проверяй профильное образование и специальность. Упоминание Мирнинского Технического университета вместе с получением высшего технического образования считай подтверждением образования для этого критерия; не требуй буквального слова «железнодорожный» в такой формулировке.",
+        "Если цель проверки РЖД, проверяй профильное образование и специальность. Упоминание Мирнинского Технического университета вместе с получением высшего технического образования считай подтверждением образования для этого критерия; не требуй буквального слова «железнодорожный» в такой формулировке. Точно различай среднее и высшее образование: если написано «среднее техническое образование», не утверждай, что образование совсем не указано, и не выдумывай железнодорожную специальность. Укажи распознанный уровень и только затем отдельно отметь, что именно требование правил не подтверждено.",
         "Проверяй возраст только при наличии даты публикации и даты рождения. ИИ не доказывает плагиат или генерацию текста; не обвиняй без доказательств. При сомнении прямо обозначь, что нужен ручной просмотр.",
       ].join(" ")
       output = await generateBioReview(
@@ -263,6 +265,28 @@ export async function POST(request: NextRequest) {
       return responseError(new Error("Не удалось выполнить AI-проверку через Groq. Попробуйте позже."), 502)
     }
 
+    const mediumEducationEvidence = text.match(/(?:получил\w*\s+)?средн\w*\s+(?:профессиональн\w*\s+)?техническ\w*\s+образован\w*/iu)?.[0]
+    if (isRzd && mediumEducationEvidence) {
+      output.findings = output.findings.map((finding) => {
+        const concernsEducation = /образован|учеб|специальност|железнодорож/iu.test(`${finding.criterion} ${finding.message}`)
+        const claimsMissingEducation = /не\s+(?:указан|указано|найден|найдено|подтвержд)|отсутств/iu.test(finding.message)
+        if (!concernsEducation || !claimsMissingEducation) return finding
+        return {
+          ...finding,
+          severity: "warning",
+          criterion: "Уровень образования",
+          message: `В биографии указано «${mediumEducationEvidence}». Этот текст подтверждает среднее техническое образование, но не подтверждает высшее образование или профильность специальности, если они требуются правилами РЖД.`,
+          evidence: mediumEducationEvidence,
+        }
+      })
+    }
+
+    const firstPersonCheck = ruleChecks.find((check) => check.criterion === "Повествование от первого лица")
+    if (firstPersonCheck) {
+      firstPersonCheck.status = output.firstPerson === "yes" ? "pass" : "fail"
+      firstPersonCheck.details = output.firstPerson === "yes" ? "ИИ определил, что основное повествование ведётся от первого лица." : "ИИ определил, что основное повествование не ведётся от первого лица."
+    }
+
     const id = crypto.randomUUID()
     const createdAt = new Date().toISOString()
     const review = {
@@ -280,6 +304,32 @@ export async function POST(request: NextRequest) {
     const { error } = await getSupabaseServer().from("app_settings").upsert({ key: `${REVIEW_KEY_PREFIX}${id}`, value: JSON.stringify(review), updated_at: createdAt }, { onConflict: "key" })
     if (error) throw error
     return NextResponse.json({ review })
+  } catch (error) {
+    return responseError(error, 500)
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const body = await request.json()
+    const reviewer = await authorize(typeof body.reviewerId === "string" ? body.reviewerId : null)
+    if (!reviewer) return responseError(new Error("Доступ только для руководства"), 403)
+    const id = typeof body.id === "string" ? body.id : ""
+    if (!/^[\da-f-]{36}$/i.test(id)) return responseError(new Error("Некорректный идентификатор проверки"), 400)
+
+    const supabase = getSupabaseServer()
+    const key = `${REVIEW_KEY_PREFIX}${id}`
+    const { data, error } = await supabase.from("app_settings").select("value").eq("key", key).maybeSingle()
+    if (error) throw error
+    if (!data) return responseError(new Error("Проверка уже удалена или не найдена"), 404)
+
+    let review: { reviewerId?: string }
+    try { review = JSON.parse(data.value) } catch { return responseError(new Error("Не удалось прочитать запись проверки"), 500) }
+    if (review.reviewerId !== reviewer.id) return responseError(new Error("Удалять можно только созданные вами проверки"), 403)
+
+    const { error: deleteError } = await supabase.from("app_settings").delete().eq("key", key)
+    if (deleteError) throw deleteError
+    return NextResponse.json({ ok: true })
   } catch (error) {
     return responseError(error, 500)
   }
