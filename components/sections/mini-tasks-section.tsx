@@ -143,7 +143,7 @@ export function MiniTasksSection() {
                 </span>
               </AccordionTrigger>
               <AccordionContent
-                className={`border-t p-4 sm:px-5 ${isDark ? "bg-[#0f1419]" : "bg-white"}`}
+                className={`max-h-none overflow-visible border-t p-4 sm:px-5 ${isDark ? "bg-[#0f1419]" : "bg-white"}`}
                 style={{ borderColor: `${tieColor}30` }}
               >
                 <div>
@@ -164,10 +164,10 @@ export function MiniTasksSection() {
                         type="button"
                         onClick={() => copyLine(lineId, line)}
                         aria-label={`${isCopied ? "Скопировано:" : "Скопировать строку:"} ${line}`}
-                        className={`group flex w-full items-start justify-between gap-4 rounded-xl border p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 ${isDark ? "border-white/10 bg-black/20 hover:border-white/30" : "border-gray-200 bg-gray-50 hover:border-gray-300"}`}
+                        className={`group flex min-w-0 w-full items-start justify-between gap-4 rounded-xl border p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 ${isDark ? "border-white/10 bg-black/20 hover:border-white/30" : "border-gray-200 bg-gray-50 hover:border-gray-300"}`}
                         style={{ borderLeftWidth: "4px", borderLeftColor: isCopied ? "#22c55e" : tieColor }}
                       >
-                        <code className={`flex-1 whitespace-pre-wrap font-mono text-xs leading-6 ${isDark ? "text-white/90" : "text-gray-900"}`}>{line}</code>
+                        <code className={`min-w-0 flex-1 whitespace-pre-wrap break-words [overflow-wrap:anywhere] font-mono text-xs leading-6 ${isDark ? "text-white/90" : "text-gray-900"}`}>{line}</code>
                         <span className="flex size-8 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: isCopied ? "#22c55e20" : `${tieColor}20` }}>
                           {isCopied ? <Check className="size-4 text-green-500" aria-hidden="true" /> : <Clipboard className="size-4 opacity-70 group-hover:opacity-100" style={{ color: tieColor }} aria-hidden="true" />}
                         </span>

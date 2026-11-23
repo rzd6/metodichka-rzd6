@@ -275,7 +275,7 @@ function MainContentInner() {
         user={user}
       />
       <main
-        className={`flex-1 transition-all duration-300 ${isCollapsed ? "ml-20" : "ml-64"}`}
+        className={`min-w-0 flex-1 transition-all duration-300 ${isCollapsed ? "ml-20" : "ml-64"}`}
       >
         <div
           className={`min-h-screen ${theme.mode === "dark" ? "bg-black/70" : "bg-white/80"}`}
