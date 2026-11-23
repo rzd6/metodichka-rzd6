@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
-import { generateText, gateway, Output } from "ai"
+import { groq } from "@ai-sdk/groq"
+import { generateText, Output } from "ai"
 import { z } from "zod"
 import { getSupabaseServer } from "@/lib/supabase-server"
 import { normalizeStoredRole } from "@/data/roles"
@@ -190,12 +191,31 @@ export async function POST(request: NextRequest) {
     const title = (typeof body.topicTitle === "string" ? body.topicTitle : pageHtml.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] ?? "")
       .replace(/<[^>]+>/g, "").replace(/&amp;/gi, "&").split(" - ")[0].trim().slice(0, 200)
     const ruleChecks = buildRuleChecks(text, isRzd, topicCreatedAt, Boolean(topicDateValue), title)
-    const { output } = await generateText({
-      model: gateway("google/gemini-3.5-flash"),
-      output: Output.object({ schema: analysisSchema }),
-      system: "Ты помощник руководителя для проверки RP-биографий на соответствие правилам форума MTA Province. Ты не одобряешь и не отклоняешь биографии. Не выдумывай факты и приводи короткое дословное подтверждение из текста. Учитывай: тема оформляется как «Биография Имя Фамилия» кириллицей или латиницей без подчёркивания; повествование от первого лица; биография должна раскрывать дату и место рождения, семью, карьеру, хронологию, нынешнее проживание, особенности характера, хобби и уникальные детали; место проживания персонажа — один из городов/посёлков Республики Провинция; запрещены суперспособности, плагиат и пропаганда религиозных/националистических взглядов. Для РЖД дополнительно проверь профильное железнодорожное образование и специальность. Проверяй отсутствие или слабое раскрытие пункта, возраст относительно даты рождения (но не делай вывод без даты публикации), противоречия и нарушения. Проверка ИИ не доказывает плагиат или генерацию текста; не обвиняй в этом без доказательств. Для неуверенности укажи uncertain/review.",
-      prompt: `Ссылка на тему: ${url.href}\nЦель проверки РЖД: ${isRzd ? "да" : "нет"}\n\nТекст темы:\n${text}`,
-    })
+    if (!process.env.GROQ_API_KEY) {
+      return responseError(new Error("Не настроен ключ Groq API. Добавьте GROQ_API_KEY в переменные окружения проекта."), 503)
+    }
+
+    let output: z.infer<typeof analysisSchema>
+    try {
+      const result = await generateText({
+        model: groq("openai/gpt-oss-20b"),
+        output: Output.object({ schema: analysisSchema }),
+        system: "Ты помощник руководителя для проверки RP-биографий на соответствие правилам форума MTA Province. Ты не одобряешь и не отклоняешь биографии. Не выдумывай факты и приводи короткое дословное подтверждение из текста. Учитывай: тема оформляется как «Биография Имя Фамилия» кириллицей или латиницей без подчёркивания; повествование от первого лица; биография должна раскрывать дату и место рождения, семью, карьеру, хронологию, нынешнее проживание, особенности характера, хобби и уникальные детали; место проживания персонажа — один из городов/посёлков Республики Провинция; запрещены суперспособности, плагиат и пропаганда религиозных/националистических взглядов. Для РЖД дополнительно проверь профильное железнодорожное образование и специальность. Проверяй отсутствие или слабое раскрытие пункта, возраст относительно даты рождения (но не делай вывод без даты публикации), противоречия и нарушения. Проверка ИИ не доказывает плагиат или генерацию текста; не обвиняй в этом без доказательств. Для неуверенности укажи uncertain/review.",
+        prompt: `Ссылка на тему: ${url.href}\nЦель проверки РЖД: ${isRzd ? "да" : "нет"}\n\nТекст темы:\n${text}`,
+      })
+      output = result.output
+    } catch (error) {
+      const statusCode = error && typeof error === "object" && "statusCode" in error
+        ? Number(error.statusCode)
+        : undefined
+      if (statusCode === 429) {
+        return responseError(new Error("Groq временно ограничил запрос по бесплатному лимиту. Попробуйте повторить позже."), 429)
+      }
+      if (statusCode === 401 || statusCode === 403) {
+        return responseError(new Error("Groq отклонил API-ключ. Проверьте значение GROQ_API_KEY в настройках проекта."), 502)
+      }
+      return responseError(new Error("Не удалось выполнить AI-проверку через Groq. Попробуйте позже."), 502)
+    }
 
     const id = crypto.randomUUID()
     const createdAt = new Date().toISOString()
