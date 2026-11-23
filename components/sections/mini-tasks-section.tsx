@@ -151,7 +151,7 @@ export function MiniTasksSection() {
                   </span>
                 </AccordionTrigger>
                 <AccordionContent
-                  className="max-h-none overflow-y-visible px-6 pb-6"
+                  className="max-h-[min(70dvh,42rem)] overflow-x-hidden overflow-y-auto overscroll-contain px-6 pb-6 [scrollbar-gutter:stable]"
                   style={{ borderColor: `${tieColor}30` }}
                 >
                   <div className="flex flex-col gap-1">

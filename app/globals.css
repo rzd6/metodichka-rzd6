@@ -198,14 +198,14 @@
       opacity: 0;
     }
     to {
-      height: min(var(--radix-accordion-content-height), 500px);
+      height: var(--radix-accordion-content-height);
       opacity: 1;
     }
   }
 
   @keyframes method-accordion-up {
     from {
-      height: min(var(--radix-accordion-content-height), 500px);
+      height: var(--radix-accordion-content-height);
       opacity: 1;
     }
     to {
