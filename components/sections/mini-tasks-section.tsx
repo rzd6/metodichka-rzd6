@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { Check, Clock, Copy, MapPin, Train, Truck, Users } from "lucide-react"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useTheme } from "@/contexts/theme-context"
@@ -52,49 +52,53 @@ export function MiniTasksSection() {
         </div>
       </header>
 
-      <Card className={`overflow-hidden rounded-2xl border-2 ${surface}`}>
-        <CardHeader className="pb-2">
-          <h2 className={`flex items-center gap-2 text-lg font-bold ${textColor}`}>
-            <Users className="size-5" style={{ color: tieColor }} aria-hidden="true" />
-            Правила выполнения
-          </h2>
-        </CardHeader>
-        <CardContent>
-          <ul className={`grid gap-3 text-sm sm:grid-cols-2 ${mutedColor}`}>
-            {MINI_TASK_RULES.map((rule, index) => (
-              <li key={rule} className={`flex items-start gap-3 rounded-xl border p-4 ${isDark ? "border-white/10 bg-white/[0.03]" : "border-gray-200 bg-gray-50"}`}>
-                <span className="flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white" style={{ backgroundColor: tieColor }}>{index + 1}</span>
-                <span className="min-w-0 break-words">{rule}</span>
-              </li>
-            ))}
-          </ul>
-          <div className={`mt-4 flex items-start gap-2 rounded-xl p-3 text-sm ${mutedColor}`} style={{ backgroundColor: `${tieColor}10` }}>
-            <Clock className="mt-0.5 size-4 shrink-0" style={{ color: tieColor }} aria-hidden="true" />
-            <span>Лимит — 3 задания в неделю; время на загрузке — не более 3 минут.</span>
-          </div>
-        </CardContent>
-      </Card>
+      <Accordion type="single" collapsible className="flex flex-col gap-3">
+        <AccordionItem value="rules" className={`overflow-hidden rounded-2xl border-2 ${isDark ? "border-white/10 bg-[#0f1419]/50" : "border-gray-200 bg-white"}`}>
+          <AccordionTrigger className="px-5 py-4 hover:no-underline sm:px-6">
+            <span className="flex items-center gap-3 text-left">
+              <Users className="size-5 shrink-0" style={{ color: tieColor }} aria-hidden="true" />
+              <span className={`font-bold ${textColor}`}>Правила выполнения</span>
+            </span>
+          </AccordionTrigger>
+          <AccordionContent className="border-t px-5 pb-5 pt-4 sm:px-6" style={{ borderColor: `${tieColor}30` }}>
+            <ul className={`grid gap-3 text-sm sm:grid-cols-2 ${mutedColor}`}>
+              {MINI_TASK_RULES.map((rule, index) => (
+                <li key={rule} className={`flex items-start gap-3 rounded-xl border p-4 ${isDark ? "border-white/10 bg-gradient-to-r from-[#0f1419]/80 to-[#0f1419]/60" : "border-gray-200 bg-gradient-to-r from-white/80 to-gray-50/60"}`}>
+                  <span className="flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white" style={{ backgroundColor: tieColor }}>{index + 1}</span>
+                  <span className="min-w-0 break-words">{rule}</span>
+                </li>
+              ))}
+            </ul>
+            <div className={`mt-4 flex items-start gap-2 rounded-xl p-3 text-sm ${mutedColor}`} style={{ backgroundColor: `${tieColor}10` }}>
+              <Clock className="mt-0.5 size-4 shrink-0" style={{ color: tieColor }} aria-hidden="true" />
+              <span>Лимит — 3 задания в неделю; время на загрузке — не более 3 минут.</span>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
 
-      <Card className={`overflow-hidden rounded-2xl border-2 ${surface}`}>
-        <CardHeader className="pb-2">
-          <h2 className={`flex items-center gap-2 text-lg font-bold ${textColor}`}>
-            <MapPin className="size-5" style={{ color: tieColor }} aria-hidden="true" />
-            Место загрузки и разгрузки
-          </h2>
-          <p className={`text-sm ${mutedColor}`}>Фото для ориентира при выполнении задания.</p>
-        </CardHeader>
-        <CardContent>
-          <a href={LOADING_UNLOADING_PHOTO} target="_blank" rel="noopener noreferrer" className={`relative block min-h-52 overflow-hidden rounded-xl border focus-visible:outline-none focus-visible:ring-2 ${isDark ? "border-white/10 bg-white/[0.03]" : "border-gray-200 bg-gray-50"}`} style={{ outlineColor: tieColor }}>
-            {photoState === "loading" && <Skeleton className="absolute inset-0 h-full w-full rounded-none" />}
-            {photoState === "error" ? (
-              <span className={`flex min-h-52 items-center justify-center px-4 text-sm ${mutedColor}`} role="status">Не удалось загрузить фото. Нажмите, чтобы открыть источник.</span>
-            ) : (
-              <img src={LOADING_UNLOADING_PHOTO} alt="Место загрузки и разгрузки для мини-заданий" className={`max-h-[420px] w-full object-contain transition-opacity duration-300 ${photoState === "loaded" ? "opacity-100" : "opacity-0"}`} loading="lazy" onLoad={() => setPhotoState("loaded")} onError={() => setPhotoState("error")} />
-            )}
-          </a>
-          <a href={LOADING_UNLOADING_PHOTO} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex text-sm underline underline-offset-4" style={{ color: tieColor }}>Открыть фото в полном размере</a>
-        </CardContent>
-      </Card>
+        <AccordionItem value="loading-place" className={`overflow-hidden rounded-2xl border-2 ${isDark ? "border-white/10 bg-[#0f1419]/50" : "border-gray-200 bg-white"}`}>
+          <AccordionTrigger className="px-5 py-4 hover:no-underline sm:px-6">
+            <span className="flex items-center gap-3 text-left">
+              <MapPin className="size-5 shrink-0" style={{ color: tieColor }} aria-hidden="true" />
+              <span className="min-w-0">
+                <span className={`block font-bold ${textColor}`}>Место загрузки и разгрузки</span>
+                <span className={`mt-1 block text-sm font-normal ${mutedColor}`}>Фото-ориентир для выполнения поставки</span>
+              </span>
+            </span>
+          </AccordionTrigger>
+          <AccordionContent className="border-t px-5 pb-5 pt-4 sm:px-6" style={{ borderColor: `${tieColor}30` }}>
+            <a href={LOADING_UNLOADING_PHOTO} target="_blank" rel="noopener noreferrer" className={`relative block min-h-52 overflow-hidden rounded-xl border focus-visible:outline-none focus-visible:ring-2 ${isDark ? "border-white/10 bg-white/[0.03]" : "border-gray-200 bg-gray-50"}`} style={{ outlineColor: tieColor }}>
+              {photoState === "loading" && <Skeleton className="absolute inset-0 h-full w-full rounded-none" />}
+              {photoState === "error" ? (
+                <span className={`flex min-h-52 items-center justify-center px-4 text-sm ${mutedColor}`} role="status">Не удалось загрузить фото. Нажмите, чтобы открыть источник.</span>
+              ) : (
+                <img src={LOADING_UNLOADING_PHOTO} alt="Место загрузки и разгрузки для мини-заданий" className={`max-h-[420px] w-full object-contain transition-opacity duration-300 ${photoState === "loaded" ? "opacity-100" : "opacity-0"}`} loading="lazy" onLoad={() => setPhotoState("loaded")} onError={() => setPhotoState("error")} />
+              )}
+            </a>
+            <a href={LOADING_UNLOADING_PHOTO} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex text-sm underline underline-offset-4" style={{ color: tieColor }}>Открыть фото в полном размере</a>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
 
       <section className="flex flex-col gap-4" aria-labelledby="mini-task-list-heading">
         <div>
@@ -137,7 +141,7 @@ export function MiniTasksSection() {
                   </span>
                 </AccordionTrigger>
                 <AccordionContent className="max-h-none overflow-visible p-0">
-                  <div className={`max-h-[min(70dvh,42rem)] overflow-y-auto overscroll-contain border-t px-4 pb-5 pt-3 [scrollbar-gutter:stable] sm:px-6 ${isDark ? "bg-[#0f1419]/50" : "bg-white"}`} style={{ borderColor: `${tieColor}30` }}>
+                  <div className={`border-t px-4 pb-5 pt-3 sm:px-6 ${isDark ? "bg-[#0f1419]/50" : "bg-white"}`} style={{ borderColor: `${tieColor}30` }}>
                     <div className="flex flex-col gap-1">
                       {lines.map((line, lineIndex) => {
                         if (!line) return <div key={`${task.id}-${lineIndex}`} className="h-2" aria-hidden="true" />
