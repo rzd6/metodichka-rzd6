@@ -336,26 +336,52 @@ const extractNumberFromRequirement = (requirement: string): number => {
 
 const getRequiredEvidenceCount = (requirement: string): number => {
   const normalized = requirement.toLowerCase()
-  if (normalized.includes("вступительную") || normalized.includes("монтёр путей") || normalized.includes("авария")) return 2
-  if (normalized.includes("экзамен")) return 1
-  if (normalized.includes("отработать 7")) return 7
-  if (normalized.includes("отстоять 30 минут на одном")) return 4
+
   if (normalized.includes("40 меток")) return 40
-  if (normalized.includes("двух разных переездах")) return 8
-  if (normalized.includes("тренировке")) return 2
-  if (normalized.includes("мероприятиях")) return 2
-  return 1
+  if (normalized.includes("отработать 7")) return 7
+  if (normalized.includes("сопроводить")) return extractNumberFromRequirement(requirement) * 2
+  if (normalized.includes("отстоять") && normalized.includes("30 минут")) {
+    const locationCount = /четыр[её]х|четыре/.test(normalized)
+      ? 4
+      : /тр[её]х|три/.test(normalized)
+        ? 3
+        : /двух|две|2 разных/.test(normalized)
+          ? 2
+          : 1
+    return locationCount * 4
+  }
+  if (normalized.includes("вступительную") || normalized.includes("монтёр путей") || normalized.includes("авария")) return 2
+
+  return extractNumberFromRequirement(requirement)
 }
 
 const getActivityTypeFromRequirement = (requirement: string): string => {
   const req = requirement.toLowerCase()
 
-  // Map requirements to activity types based on keywords
+  // Map requirement to activity types based on keywords
+  if (req.includes("собеседован")) {
+    return "Открытое собеседование"
+  }
+  if (req.includes("межфракцион") || req.includes("совместн")) {
+    return "Межфракционное мероприятие"
+  }
   if (req.includes("экзамен") || req.includes("тэул") || req.includes("пэул")) {
     return "Экзамен"
   }
+  if (req.includes("автономн")) {
+    return "Автономный рейс"
+  }
+  if (req.includes("сопровод")) {
+    return "Сопровождение рейса"
+  }
   if (req.includes("рейс") || req.includes("поездн")) {
     return "Рейс с диспетчером"
+  }
+  if (req.includes("тренировк")) {
+    return "Тренировка"
+  }
+  if (req.includes("метк")) {
+    return "Маркеры"
   }
   if (req.includes("лекци")) {
     // Special handling for railway object lectures
@@ -387,10 +413,10 @@ const getRequirementsForReportType = (type: "pto" | "cdud", position: string): s
   switch (type) {
     case "pto":
       const ptoReqs = getPromotionRequirementsForPosition(position as Position)
-      return ptoReqs ? ptoReqs.requirements : null
+      return ptoReqs ? [...ptoReqs.requirements, ...Object.values(ptoReqs.alternatives ?? {}).flat()] : null
     case "cdud":
       const cdudReqs = getPromotionRequirementsForPosition(position as Position)
-      return cdudReqs ? cdudReqs.requirements : null
+      return cdudReqs ? [...cdudReqs.requirements, ...Object.values(cdudReqs.alternatives ?? {}).flat()] : null
     default:
       return null
   }
@@ -1314,6 +1340,20 @@ export function ReportGenerationSection() {
             ? cdudReportData.workEntries
             : warningReportData.workEntries
 
+    if (reportType === "pto" || reportType === "cdud") {
+      const position = previewPosition || currentUser?.position || ""
+      const alternatives = getPromotionRequirementsForPosition(position as Position)?.alternatives?.[requirement] ?? []
+      const evidenceOptions = [requirement, ...alternatives].map((title) => {
+        const matchingCount = entries
+          .filter((entry) => entry.title.toLowerCase().trim() === title.toLowerCase().trim())
+          .reduce((total, entry) => total + Math.max(1, entry.filesCount || 0), 0)
+        const requiredCount = getRequiredEvidenceCount(title)
+        const percentage = Math.min((matchingCount / requiredCount) * 100, 100)
+        return { fulfilled: matchingCount >= requiredCount, progress: `${matchingCount}/${requiredCount}`, percentage }
+      })
+      return evidenceOptions.reduce((best, current) => current.percentage > best.percentage ? current : best)
+    }
+
     // Split by "/" to handle alternative requirements
     const requirementParts = requirement.split("/").map((part) => part.trim())
 
@@ -1322,9 +1362,7 @@ export function ReportGenerationSection() {
 
     let requiredCount = 1
 
-    if (reportType === "pto" || reportType === "cdud") {
-      requiredCount = 1
-    } else if (requirementParts.length > 1) {
+    if (requirementParts.length > 1) {
       // Multiple alternatives - find the minimum count across all parts
       const counts = requirementParts.map((part) => extractNumberFromRequirement(part)).filter((count) => count > 0)
 
@@ -1335,12 +1373,7 @@ export function ReportGenerationSection() {
 
 
     const matchingEntries = entries.filter((entry) => {
-      const normalizedEntryTitle = entry.title.toLowerCase().trim()
       const normalizedEntryType = entry.activityType.toLowerCase().trim()
-
-      if (reportType === "pto" || reportType === "cdud") {
-        return normalizedEntryTitle === requirement.toLowerCase().trim()
-      }
 
       const matches = activityTypes.some((type) => {
         const normalizedType = type.toLowerCase().trim()
@@ -1461,8 +1494,12 @@ export function ReportGenerationSection() {
     const progress = requirements.length > 0 ? totalPercentage / requirements.length : 0
     const fulfilledCount = requirementResults.filter((result) => result.fulfilled).length
 
-    const position = currentUser?.position || ""
+    const position = previewPosition || currentUser?.position || ""
     const pointsRequired = reportType === "warning" ? getReprimandPointsRequired(position as Position) : null
+    const promotionNotes =
+      reportType === "pto" || reportType === "cdud"
+        ? getPromotionRequirementsForPosition(position as Position)?.notes ?? []
+        : []
 
     const warningProgress = reportType === "warning" && pointsRequired ? calculateWarningProgress() : null
 
@@ -1636,16 +1673,31 @@ export function ReportGenerationSection() {
                           <Circle className="w-5 h-5 text-gray-400 flex-shrink-0 mt-0.5" />
                         )}
                         <div className="flex-1">
-                          <p className={`text-sm ${result.fulfilled ? "line-through opacity-70" : ""}`}>{req}</p>
-                  {(result.fulfilled || result.progress !== "0/1") && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Выполнено: {result.fulfilled ? "100%" : `${result.progress} (${Math.round(result.percentage)}%)`}
-                    </p>
-                  )}
+                          <p className={`text-sm ${result.fulfilled ? "line-through opacity-70" : ""}`}>
+                            {req}
+                            {getPromotionRequirementsForPosition(position as Position)?.alternatives?.[req]?.length ? (
+                              <span className="mt-1 block text-xs font-normal text-muted-foreground">
+                                Или: {getPromotionRequirementsForPosition(position as Position)?.alternatives?.[req]?.join("; ")}
+                              </span>
+                            ) : null}
+                          </p>
+                          {(result.fulfilled || result.progress !== `0/${getRequiredEvidenceCount(req)}`) && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Подтверждения: {result.fulfilled ? "все загружены" : `${result.progress} (${Math.round(result.percentage)}%)`}
+                            </p>
+                          )}
                         </div>
                       </div>
                     )
                   })}
+                  {promotionNotes.length > 0 && (
+                    <div className={`rounded-lg border p-3 text-sm ${theme.mode === "dark" ? "border-amber-500/25 bg-amber-500/[0.06] text-white/80" : "border-amber-300 bg-amber-50 text-gray-700"}`}>
+                      <h4 className="mb-1 font-semibold">Примечания по замене требований</h4>
+                      <ul className="flex flex-col gap-1">
+                        {promotionNotes.map((note) => <li key={note}>{note}</li>)}
+                      </ul>
+                    </div>
+                  )}
                 </div>
 
                 {/* Uploaded entries list */}

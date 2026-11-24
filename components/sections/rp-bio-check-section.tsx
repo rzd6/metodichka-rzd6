@@ -234,9 +234,9 @@ export function RpBioCheckSection() {
                 <h3 className="mb-2 font-semibold">Форма и требования</h3>
                 <ul className="flex flex-col divide-y divide-white/10">
                   {selected.ruleChecks.map((check) => (
-                    <li key={check.criterion} className="flex flex-col gap-1 py-2.5 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-                      <span className="text-sm">{check.criterion}</span>
-                      <span className={`shrink-0 text-xs font-medium ${check.status === "pass" ? "text-emerald-500" : check.status === "fail" ? "text-red-400" : "text-amber-500"}`}>{statusLabel(check.status)} · {check.details}</span>
+                    <li key={check.criterion} className="flex min-w-0 flex-col gap-1 py-2.5 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+                      <span className="min-w-0 flex-1 break-words text-sm [overflow-wrap:anywhere]">{check.criterion}</span>
+                      <span className={`min-w-0 max-w-full break-words text-xs font-medium [overflow-wrap:anywhere] sm:max-w-[58%] sm:text-right ${check.status === "pass" ? "text-emerald-500" : check.status === "fail" ? "text-red-400" : "text-amber-500"}`}>{statusLabel(check.status)} · {check.details}</span>
                     </li>
                   ))}
                 </ul>
