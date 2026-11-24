@@ -140,7 +140,7 @@ export function MiniTasksSection() {
                     </span>
                   </span>
                 </AccordionTrigger>
-                <AccordionContent className="max-h-none overflow-visible p-0">
+                <AccordionContent className="p-0">
                   <div className={`border-t px-4 pb-5 pt-3 sm:px-6 ${isDark ? "bg-[#0f1419]/50" : "bg-white"}`} style={{ borderColor: `${tieColor}30` }}>
                     <div className="flex flex-col gap-1">
                       {lines.map((line, lineIndex) => {
