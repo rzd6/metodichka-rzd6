@@ -593,11 +593,14 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed, setIsColl
   useEffect(() => {
     const closeForOnboarding = () => setShowNotifications(false)
     const closeSettingsForOnboarding = () => setShowSettings(false)
+    const handleAutoOpen = () => setShowNotifications(true)
     window.addEventListener("closeNotificationsForOnboarding", closeForOnboarding)
     window.addEventListener("closeSettingsForOnboarding", closeSettingsForOnboarding)
+    window.addEventListener("autoOpenNotifications", handleAutoOpen)
     return () => {
       window.removeEventListener("closeNotificationsForOnboarding", closeForOnboarding)
       window.removeEventListener("closeSettingsForOnboarding", closeSettingsForOnboarding)
+      window.removeEventListener("autoOpenNotifications", handleAutoOpen)
     }
   }, [])
 
@@ -811,7 +814,7 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed, setIsColl
       </aside>
 
       <SettingsModal open={showSettings} onOpenChange={setShowSettings} initialTab={settingsInitialTab} onRestartOnboarding={() => { setShowSettings(false); window.dispatchEvent(new Event("restartOnboarding")) }} />
-      <NotificationsModal open={showNotifications} onOpenChange={setShowNotifications} userRole={user.role} secondaryRole={user.secondaryRole} refreshKey={vkNewsSync?.checkedAt} />
+      <NotificationsModal open={showNotifications} onOpenChange={setShowNotifications} userRole={user.role} secondaryRole={user.secondaryRole} refreshKey={vkNewsSync?.checkedAt} userId={user.id} onUnreadChange={setUnreadCount} />
     </>
   )
 }

@@ -17,6 +17,8 @@ interface NotificationsModalProps {
   userRole: UserRole
   secondaryRole?: string
   refreshKey?: string
+  userId?: string
+  onUnreadChange?: (count: number) => void
 }
 
 function RoleBadgeIcon({ role, color }: { role: string; color: string }) {
@@ -81,7 +83,7 @@ function LinkifiedText({ text, color }: { text: string; color: string }) {
   return <>{parts}</>
 }
 
-export function NotificationsModal({ open, onOpenChange, userRole, secondaryRole, refreshKey }: NotificationsModalProps) {
+export function NotificationsModal({ open, onOpenChange, userRole, secondaryRole, refreshKey, userId, onUnreadChange }: NotificationsModalProps) {
   const { theme } = useTheme()
   const [articles, setArticles] = useState<Article[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -91,7 +93,7 @@ export function NotificationsModal({ open, onOpenChange, userRole, secondaryRole
   const getTieColor = () => getThemeColor(theme.colorTheme)
 
   useEffect(() => {
-    if (!open) return
+    if (!open || !userId) return
     setIsLoading(true)
     setError(null)
     getArticles()
@@ -103,6 +105,27 @@ export function NotificationsModal({ open, onOpenChange, userRole, secondaryRole
           return a.allowed_roles.includes(userRole) || (secondaryRole ? a.allowed_roles.includes(secondaryRole) : false)
         })
         setArticles(filtered)
+
+        // Сообщаем родителю количество непрочитанных
+        if (onUnreadChange) {
+          onUnreadChange(filtered.length)
+        }
+
+        // Помечаем загруженные уведомления как прочитанные в БД
+        if (filtered.length > 0) {
+          try {
+            await fetch("/api/notifications/read", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                user_id: userId,
+                article_ids: filtered.map((a) => Number(a.id)),
+              }),
+            })
+          } catch {
+            // silent — не блокируем UI из-за ошибки сети
+          }
+        }
 
         // Fetch custom avatars for authors from users API
         const authorIds = [...new Set(filtered.map((a) => a.author_id).filter(Boolean))]
@@ -125,9 +148,12 @@ export function NotificationsModal({ open, onOpenChange, userRole, secondaryRole
       .catch((err: any) => {
         setError(err?.message || "Не удалось загрузить уведомления")
         setArticles([])
+        if (onUnreadChange) {
+          onUnreadChange(0)
+        }
       })
       .finally(() => setIsLoading(false))
-  }, [open, userRole, secondaryRole, refreshKey])
+  }, [open, userId, userRole, secondaryRole, refreshKey, onUnreadChange])
 
   const getAuthorBlock = (article: Article) => {
     const isFaction = article.author_name === "Группа РЖД"

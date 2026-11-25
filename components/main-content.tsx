@@ -205,6 +205,21 @@ function MainContentInner() {
 
     refreshFromDb(userData)
 
+    // Проверяем непрочитанные уведомления при заходе/обновлении страницы.
+    // Данные хранятся в Supabase, поэтому работают корректно с разных доменов.
+    const checkUnreadNotifications = async () => {
+      try {
+        const res = await fetch(`/api/notifications/unread?user_id=${encodeURIComponent(userData.id)}`)
+        const json = await res.json()
+        if (json && json.unreadCount > 0) {
+          window.dispatchEvent(new CustomEvent("autoOpenNotifications"))
+        }
+      } catch {
+        // Не блокируем загрузку приложения из-за ошибки уведомлений
+      }
+    }
+    checkUnreadNotifications()
+
     const handleUserUpdate = () => {
       const latest = localStorage.getItem("currentUser")
       if (latest) {
