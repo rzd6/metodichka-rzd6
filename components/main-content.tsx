@@ -210,12 +210,16 @@ function MainContentInner() {
     const checkUnreadNotifications = async () => {
       try {
         const res = await fetch(`/api/notifications/unread?user_id=${encodeURIComponent(userData.id)}`)
+        if (!res.ok) {
+          console.warn("[notifications] API responded with status", res.status)
+          return
+        }
         const json = await res.json()
         if (json && json.unreadCount > 0) {
           window.dispatchEvent(new CustomEvent("autoOpenNotifications"))
         }
-      } catch {
-        // Не блокируем загрузку приложения из-за ошибки уведомлений
+      } catch (err) {
+        console.warn("[notifications] Failed to check unread notifications:", err)
       }
     }
     checkUnreadNotifications()

@@ -593,7 +593,12 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed, setIsColl
   useEffect(() => {
     const closeForOnboarding = () => setShowNotifications(false)
     const closeSettingsForOnboarding = () => setShowSettings(false)
-    const handleAutoOpen = () => setShowNotifications(true)
+    const handleAutoOpen = () => {
+      // При автооткрытии модалка сама пометит уведомления прочитанными через API,
+      // поэтому обнуляем счётчик сразу.
+      setUnreadCount(0)
+      setShowNotifications(true)
+    }
     window.addEventListener("closeNotificationsForOnboarding", closeForOnboarding)
     window.addEventListener("closeSettingsForOnboarding", closeSettingsForOnboarding)
     window.addEventListener("autoOpenNotifications", handleAutoOpen)
