@@ -92,8 +92,29 @@ export function NotificationsModal({ open, onOpenChange, userRole, secondaryRole
 
   const getTieColor = () => getThemeColor(theme.colorTheme)
 
+  const READ_KEY = "rzd-notifications-read"
+  const HAS_UNREAD_KEY = "rzd-notifications-has-unread"
+
+  const getReadIds = (): number[] => {
+    try {
+      const raw = localStorage.getItem(READ_KEY)
+      if (!raw) return []
+      const parsed = JSON.parse(raw)
+      return Array.isArray(parsed) ? parsed : []
+    } catch {
+      return []
+    }
+  }
+
+  const markAsRead = (ids: number[]) => {
+    const current = getReadIds()
+    const merged = [...new Set([...current, ...ids])]
+    localStorage.setItem(READ_KEY, JSON.stringify(merged))
+    localStorage.setItem(HAS_UNREAD_KEY, "0")
+  }
+
   useEffect(() => {
-    if (!open || !userId) return
+    if (!open) return
     setIsLoading(true)
     setError(null)
     getArticles()
@@ -106,25 +127,18 @@ export function NotificationsModal({ open, onOpenChange, userRole, secondaryRole
         })
         setArticles(filtered)
 
+        const readIds = getReadIds()
+        const unread = filtered.filter((a) => !readIds.includes(Number(a.id)))
+
         // Сообщаем родителю количество непрочитанных
         if (onUnreadChange) {
-          onUnreadChange(filtered.length)
+          onUnreadChange(unread.length)
         }
 
-        // Помечаем загруженные уведомления как прочитанные в БД
+        // Помечаем прочитанными в localStorage (не требует Supabase)
         if (filtered.length > 0) {
-          try {
-            await fetch("/api/notifications/read", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                user_id: userId,
-                article_ids: filtered.map((a) => Number(a.id)),
-              }),
-            })
-          } catch {
-            // silent — не блокируем UI из-за ошибки сети
-          }
+          markAsRead(filtered.map((a) => Number(a.id)))
+          localStorage.setItem(HAS_UNREAD_KEY, "0")
         }
 
         // Fetch custom avatars for authors from users API
@@ -153,7 +167,7 @@ export function NotificationsModal({ open, onOpenChange, userRole, secondaryRole
         }
       })
       .finally(() => setIsLoading(false))
-  }, [open, userId, userRole, secondaryRole, refreshKey, onUnreadChange])
+  }, [open, userRole, secondaryRole, refreshKey, onUnreadChange])
 
   const getAuthorBlock = (article: Article) => {
     const isFaction = article.author_name === "Группа РЖД"

@@ -610,23 +610,8 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed, setIsColl
   }, [])
 
   const handleOpenNotifications = async () => {
-  setShowNotifications(true)
+    setShowNotifications(true)
     setUnreadCount(0)
-    // Persist which articles are read so count stays 0 after page reload
-    try {
-      const { getArticles } = await import("@/lib/supabase-rzd")
-      const all = await getArticles()
-      const visible = all.filter((article: any) => {
-        if (!article.is_published || !Array.isArray(article.allowed_roles)) return false
-        if (user.role === "Тех. Администратор" || user.secondaryRole === "Тех. Администратор") return true
-        return article.allowed_roles.includes(user.role) || (user.secondaryRole ? article.allowed_roles.includes(user.secondaryRole) : false)
-      })
-      const readKey = `readArticles_${user.id || user.nickname || "guest"}`
-      const ids = visible.map((article: any) => String(article.id))
-      localStorage.setItem(readKey, JSON.stringify(ids))
-    } catch {
-      // silent
-    }
   }
 
   const handleLogout = () => {
