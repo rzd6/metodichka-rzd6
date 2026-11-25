@@ -37,7 +37,6 @@ const BUILTIN_SECTIONS: { id: string; defaultTitle: string; hasContent?: boolean
   { id: "report-compiler",   defaultTitle: "Составитель докладов" },
   { id: "rzd-website",       defaultTitle: "Официальные уведомления" },
   { id: "train-schedule",    defaultTitle: "Расписание рейсов" },
-  { id: "mini-tasks",        defaultTitle: "Мини-задания" },
 ]
 
 // Map section id to its static content from content.ts

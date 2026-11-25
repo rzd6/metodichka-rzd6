@@ -14,7 +14,6 @@ interface BugReportButtonProps {
 const SECTION_LABELS: Record<string, string> = {
   contents: "Содержание",
   information: "Информация",
-  "mini-tasks": "Мини-задания",
   lectures: "Лекции",
   training: "Тренировки",
   events: "Мероприятия",
