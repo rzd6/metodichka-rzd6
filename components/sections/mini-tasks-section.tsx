@@ -140,8 +140,8 @@ export function MiniTasksSection() {
                     </span>
                   </span>
                 </AccordionTrigger>
-                <AccordionContent className="p-0">
-                  <div className={`max-h-[min(70dvh,42rem)] overflow-y-auto overscroll-contain border-t px-4 pb-5 pt-3 [scrollbar-gutter:stable] sm:px-6 ${isDark ? "bg-[#0f1419]/50" : "bg-white"}`} style={{ borderColor: `${tieColor}30` }}>
+                <AccordionContent className="max-h-[min(70dvh,42rem)] overflow-y-auto overscroll-contain p-0 [scrollbar-gutter:stable]">
+                  <div className={`border-t px-4 pb-5 pt-3 sm:px-6 ${isDark ? "bg-[#0f1419]/50" : "bg-white"}`} style={{ borderColor: `${tieColor}30` }}>
                     <div className="flex flex-col gap-1">
                       {lines.map((line, lineIndex) => {
                         if (!line) return <div key={`${task.id}-${lineIndex}`} className="h-2" aria-hidden="true" />
