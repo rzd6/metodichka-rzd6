@@ -25,4 +25,7 @@ export default defineConfig({
       plugins: [],
     },
   },
+  build: {
+    sourcemap: false,
+  },
 });
