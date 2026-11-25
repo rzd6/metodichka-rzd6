@@ -10,8 +10,6 @@ import {
 } from "@/components/ui/accordion"
 import {
   Field,
-  FieldDescription,
-  FieldGroup,
   FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
@@ -139,9 +137,9 @@ export function MiniTasksSection({ userReportTag }: MiniTasksSectionProps) {
   const { theme } = useTheme()
   const accentColor = getThemeColor(theme.colorTheme)
   const isDark = theme.mode === "dark"
-  const [reportTag, setReportTag] = useState(userReportTag || "[ТЭГ]")
   const [helperName, setHelperName] = useState("")
   const [port, setPort] = useState<"Невского" | "Приволжска">("Невского")
+  const reportTag = userReportTag?.trim() || "[ТЭГ]"
   const [copiedLineId, setCopiedLineId] = useState<string | null>(null)
   const [copyStatus, setCopyStatus] = useState("")
 
@@ -201,63 +199,6 @@ export function MiniTasksSection({ userReportTag }: MiniTasksSectionProps) {
         ))}
       </div>
 
-      <section
-        aria-labelledby="mini-task-settings-heading"
-        className={`rounded-2xl border-2 p-4 sm:p-5 ${isDark ? "border-white/10 bg-[#0f1419]/50" : "border-gray-200 bg-white/85"}`}
-      >
-        <div className="mb-4 flex items-center gap-3">
-          <UserRound className="size-5 shrink-0" style={{ color: accentColor }} aria-hidden="true" />
-          <div>
-            <h3 id="mini-task-settings-heading" className={`font-semibold ${isDark ? "text-white" : "text-gray-900"}`}>
-              Подставить данные в шаблоны
-            </h3>
-            <p className={`text-sm ${isDark ? "text-white/65" : "text-gray-600"}`}>
-              Настройки применяются к RP-строкам во всех заданиях.
-            </p>
-          </div>
-        </div>
-        <FieldGroup className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          <Field>
-            <FieldLabel htmlFor="mini-task-report-tag">ТЭГ</FieldLabel>
-            <Input
-              id="mini-task-report-tag"
-              autoComplete="off"
-              value={reportTag}
-              onChange={(event) => setReportTag(event.target.value)}
-              placeholder="[ТЭГ]"
-            />
-            <FieldDescription>Заменяет отметку [ТЭГ] в объявлениях.</FieldDescription>
-          </Field>
-          <Field>
-            <FieldLabel htmlFor="mini-task-helper-name">Имя напарника</FieldLabel>
-            <Input
-              id="mini-task-helper-name"
-              autoComplete="off"
-              value={helperName}
-              onChange={(event) => setHelperName(event.target.value)}
-              placeholder="Имя Фамилия"
-            />
-            <FieldDescription>Необязательно. Если пусто, в шаблоне останется подсказка.</FieldDescription>
-          </Field>
-          <Field>
-            <FieldLabel htmlFor="mini-task-port">Порт для поставки формы</FieldLabel>
-            <Select value={port} onValueChange={(value) => setPort(value as "Невского" | "Приволжска")}>
-              <SelectTrigger id="mini-task-port" className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectLabel>Городской порт</SelectLabel>
-                  <SelectItem value="Невского">Невского</SelectItem>
-                  <SelectItem value="Приволжска">Приволжска</SelectItem>
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-            <FieldDescription>Используется в задании по поставке формы.</FieldDescription>
-          </Field>
-        </FieldGroup>
-      </section>
-
       <Accordion type="single" collapsible defaultValue="rules" className="flex flex-col gap-4">
         <AccordionItem
           value="rules"
@@ -293,6 +234,33 @@ export function MiniTasksSection({ userReportTag }: MiniTasksSectionProps) {
           </AccordionContent>
         </AccordionItem>
 
+        <section
+          aria-labelledby="mini-task-settings-heading"
+          className={`rounded-2xl border-2 p-4 sm:p-5 ${isDark ? "border-white/10 bg-[#0f1419]/50" : "border-gray-200 bg-white/85"}`}
+        >
+          <div className="mb-4 flex items-center gap-3">
+            <UserRound className="size-5 shrink-0" style={{ color: accentColor }} aria-hidden="true" />
+            <div>
+              <h3 id="mini-task-settings-heading" className={`font-semibold ${isDark ? "text-white" : "text-gray-900"}`}>
+                Имя напарника
+              </h3>
+              <p className={`text-sm ${isDark ? "text-white/65" : "text-gray-600"}`}>
+                Необязательно. Если напарника нет, строка о нём не добавляется.
+              </p>
+            </div>
+          </div>
+          <Field className="max-w-md">
+            <FieldLabel htmlFor="mini-task-helper-name">Имя Фамилия</FieldLabel>
+            <Input
+              id="mini-task-helper-name"
+              autoComplete="off"
+              value={helperName}
+              onChange={(event) => setHelperName(event.target.value)}
+              placeholder="Имя Фамилия"
+            />
+          </Field>
+        </section>
+
         {MINI_TASKS.map((task, taskIndex) => {
           const stages = getMiniTaskTemplate(task, { reportTag, port, helperName })
 
@@ -323,16 +291,52 @@ export function MiniTasksSection({ userReportTag }: MiniTasksSectionProps) {
               </AccordionTrigger>
               <AccordionContent className="px-4 pb-5 sm:px-6">
                 <div className="flex flex-col gap-3">
+                  {task.portChoice && (
+                    <Field className={`rounded-xl border p-4 ${isDark ? "border-white/10 bg-black/20" : "border-gray-200 bg-gray-50"}`}>
+                      <FieldLabel htmlFor="mini-task-port">Город для поставки формы</FieldLabel>
+                      <Select value={port} onValueChange={(value) => setPort(value as "Невского" | "Приволжска")}>
+                        <SelectTrigger id="mini-task-port" className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectGroup>
+                            <SelectLabel>Городской порт</SelectLabel>
+                            <SelectItem value="Невского">Невского</SelectItem>
+                            <SelectItem value="Приволжска">Приволжска</SelectItem>
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
+                    </Field>
+                  )}
                   {stages.map((stage) => (
-                    <CopyableStage
-                      key={stage.id}
-                      taskId={task.id}
-                      stage={stage}
-                      copiedLineId={copiedLineId}
-                      isDark={isDark}
-                      accentColor={accentColor}
-                      onCopy={copyToClipboard}
-                    />
+                    <div key={stage.id} className="flex flex-col gap-2">
+                      <CopyableStage
+                        taskId={task.id}
+                        stage={stage}
+                        copiedLineId={copiedLineId}
+                        isDark={isDark}
+                        accentColor={accentColor}
+                        onCopy={copyToClipboard}
+                      />
+                      {({
+                        departure: "Сделайте скриншот отправления из РЖД.",
+                        arrival: "Сделайте скриншот прибытия на место назначения.",
+                        loading: "Сделайте скриншот РП-отыгровки погрузки.",
+                        unloading: "Сделайте скриншот РП-отыгровки разгрузки.",
+                        finish: "Сделайте скриншот прибытия в РЖД.",
+                      } as Record<string, string>)[stage.id] && (
+                        <p className={`flex items-center gap-2 px-2 text-xs ${isDark ? "text-white/55" : "text-gray-500"}`}>
+                          <Camera className="size-3.5 shrink-0" aria-hidden="true" />
+                          {({
+                            departure: "Сделайте скриншот отправления из РЖД.",
+                            arrival: "Сделайте скриншот прибытия на место назначения.",
+                            loading: "Сделайте скриншот РП-отыгровки погрузки.",
+                            unloading: "Сделайте скриншот РП-отыгровки разгрузки.",
+                            finish: "Сделайте скриншот прибытия в РЖД.",
+                          } as Record<string, string>)[stage.id]}
+                        </p>
+                      )}
+                    </div>
                   ))}
                 </div>
               </AccordionContent>

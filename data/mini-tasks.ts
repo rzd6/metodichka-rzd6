@@ -112,8 +112,8 @@ export function getMiniTaskTemplate(
   options: { reportTag?: string; port?: MiniTaskPort; helperName?: string } = {},
 ): MiniTaskStage[] {
   const reportTag = options.reportTag?.trim() || "[ТЭГ]"
-  const helperName = options.helperName?.trim() || "Имя Фамилия (если имеется)"
-  const partnerSuffix = ` Напарник: ${helperName}.`
+  const helperName = options.helperName?.trim()
+  const partnerSuffix = helperName ? ` Напарник: ${helperName}.` : ""
   const destination = task.portChoice && options.port ? `городской порт ${options.port}` : task.destination
   const storageName = task.storage === "контейнер" ? "Контейнер" : "Гараж"
   const announce = (message: string, withPartner = false) =>
