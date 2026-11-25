@@ -291,6 +291,7 @@ function MainContentInner() {
               onSectionChange={handleSectionChange}
               userRole={user?.role}
               userNickname={user?.nickname}
+              userReportTag={user?.reportTag}
               secondaryRole={user?.secondaryRole}
             />
           </div>

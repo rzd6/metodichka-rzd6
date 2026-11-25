@@ -29,6 +29,7 @@ const BUILTIN_SECTIONS: { id: string; defaultTitle: string; hasContent?: boolean
   { id: "exams",             defaultTitle: "Экзамены",      hasContent: true },
   { id: "interviews",        defaultTitle: "Собеседования", hasContent: true },
   { id: "retro-train",       defaultTitle: "Ретропоезд",     hasContent: true },
+  { id: "mini-tasks",        defaultTitle: "Мини-задания",   hasContent: true },
   { id: "duty",              defaultTitle: "Дежурство" },
   { id: "orders",            defaultTitle: "Приказы",         hasContent: true },
   { id: "reports-section",   defaultTitle: "Доклады в рацию" },

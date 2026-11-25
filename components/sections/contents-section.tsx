@@ -24,6 +24,7 @@ import {
   Users,
   Globe,
   PenLine,
+  PackageOpen,
 } from "lucide-react"
 import { useTheme } from "@/contexts/theme-context"
 import type { UserRole } from "@/data/users"
@@ -64,6 +65,13 @@ export function ContentsSection({ onSectionChange, userRole, secondaryRole }: Co
       title: "Информация",
       description: "Справочная информация по рангам, должностям и структуре РЖД.",
       canAccess: true, // Available to all roles
+    },
+    {
+      id: "mini-tasks",
+      icon: PackageOpen,
+      title: "Мини-задания",
+      description: "Правила поставок, RP-шаблоны и карта мест загрузки.",
+      canAccess: true,
     },
     {
       id: "lectures",

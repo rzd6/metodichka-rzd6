@@ -20,6 +20,7 @@ const SECTION_LABELS: Record<string, string> = {
   exams: "Экзамены",
   interviews: "Собеседования",
   "retro-train": "Ретропоезд",
+  "mini-tasks": "Мини-задания",
   duty: "Дежурство",
   orders: "Приказы",
   "reports-section": "Доклады в рацию",
