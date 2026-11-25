@@ -23,12 +23,10 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import {
-  CalendarDays,
   Camera,
   Check,
   Copy,
   MapPin,
-  PackageOpen,
   ShieldCheck,
   Truck,
   UserRound,
@@ -154,13 +152,6 @@ export function MiniTasksSection({ userReportTag }: MiniTasksSectionProps) {
     }
   }
 
-  const summaryCards = [
-    { icon: CalendarDays, label: "Лимит", value: "До 3 раз в неделю" },
-    { icon: ShieldCheck, label: "Доступ", value: "От ранга 2 — «Монтёр пути»" },
-    { icon: Truck, label: "Основной транспорт", value: "ЗИЛ-131" },
-    { icon: Camera, label: "Если ЗИЛа нет", value: "УАЗ-3309 «Буханка» + скриншот" },
-  ]
-
   return (
     <section aria-labelledby="mini-tasks-heading" className="flex flex-col gap-6 opacity-95">
       <header
@@ -172,7 +163,7 @@ export function MiniTasksSection({ userReportTag }: MiniTasksSectionProps) {
           className="rounded-xl p-3"
           style={{ background: `linear-gradient(135deg, ${accentColor}25, ${accentColor}10)` }}
         >
-          <PackageOpen className="size-6" style={{ color: accentColor }} />
+          <Truck className="size-6" style={{ color: accentColor }} />
         </div>
         <div>
           <h2 id="mini-tasks-heading" className="text-2xl font-bold sm:text-3xl" style={{ color: accentColor }}>
@@ -183,21 +174,6 @@ export function MiniTasksSection({ userReportTag }: MiniTasksSectionProps) {
           </p>
         </div>
       </header>
-
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {summaryCards.map(({ icon: Icon, label, value }) => (
-          <div
-            key={label}
-            className={`flex min-w-0 items-start gap-3 rounded-xl border p-4 ${isDark ? "border-white/10 bg-[#0f1419]/60" : "border-gray-200 bg-white/85"}`}
-          >
-            <Icon className="mt-0.5 size-5 shrink-0" style={{ color: accentColor }} aria-hidden="true" />
-            <div className="min-w-0">
-              <p className={`text-xs font-medium ${isDark ? "text-white/55" : "text-gray-500"}`}>{label}</p>
-              <p className={`mt-1 text-sm font-semibold ${isDark ? "text-white" : "text-gray-900"}`}>{value}</p>
-            </div>
-          </div>
-        ))}
-      </div>
 
       <Accordion type="single" collapsible defaultValue="rules" className="flex flex-col gap-4">
         <AccordionItem
@@ -233,6 +209,33 @@ export function MiniTasksSection({ userReportTag }: MiniTasksSectionProps) {
             </ol>
           </AccordionContent>
         </AccordionItem>
+
+        <section
+          aria-labelledby="loading-locations-heading"
+          className={`overflow-hidden rounded-2xl border-2 ${isDark ? "border-white/10 bg-[#0f1419]/50" : "border-gray-200 bg-white"}`}
+        >
+          <div className="flex items-center gap-3 px-5 pt-5 sm:px-6">
+            <MapPin className="size-5 shrink-0" style={{ color: accentColor }} aria-hidden="true" />
+            <div>
+              <h3 id="loading-locations-heading" className={`font-bold ${isDark ? "text-white" : "text-gray-900"}`}>
+                Места загрузки и разгрузки
+              </h3>
+              <p className={`mt-1 text-sm ${isDark ? "text-white/70" : "text-gray-600"}`}>
+                Точки загрузки для пяти поставок и общая точка разгрузки в здании РЖД.
+              </p>
+            </div>
+          </div>
+          <div className="mx-4 mb-4 mt-4 overflow-hidden rounded-xl border-2 shadow-lg sm:mx-6 sm:mb-6" style={{ borderColor: `${accentColor}70`, boxShadow: `0 12px 36px ${accentColor}18` }}>
+            <Image
+              src={LOADING_UNLOADING_PHOTO}
+              alt="Схема мест загрузки: форма, запчасти, башмаки, уголь и дизель; место разгрузки — РЖД"
+              width={1920}
+              height={1080}
+              sizes="(max-width: 768px) 100vw, 900px"
+              className="h-auto w-full"
+            />
+          </div>
+        </section>
 
         <section
           aria-labelledby="mini-task-settings-heading"
@@ -344,36 +347,6 @@ export function MiniTasksSection({ userReportTag }: MiniTasksSectionProps) {
           )
         })}
 
-        <AccordionItem
-          value="locations"
-          className={`overflow-hidden rounded-2xl border-2 ${isDark ? "border-white/10 bg-[#0f1419]/50" : "border-gray-200 bg-white"}`}
-        >
-          <AccordionTrigger className="px-5 py-4 text-left hover:no-underline sm:px-6">
-            <span className="flex items-center gap-3">
-              <MapPin className="size-5 shrink-0" style={{ color: accentColor }} aria-hidden="true" />
-              <span className={`font-bold ${isDark ? "text-white" : "text-gray-900"}`}>
-                Места загрузки и разгрузки
-              </span>
-            </span>
-          </AccordionTrigger>
-          <AccordionContent className="px-4 pb-5 sm:px-6">
-            <div className="flex flex-col gap-3">
-              <p className={`text-sm ${isDark ? "text-white/70" : "text-gray-600"}`}>
-                Карта точек загрузки для пяти поставок и общей точки разгрузки в здании РЖД.
-              </p>
-              <div className="overflow-hidden rounded-xl border" style={{ borderColor: `${accentColor}40` }}>
-                <Image
-                  src={LOADING_UNLOADING_PHOTO}
-                  alt="Схема мест загрузки: форма, запчасти, башмаки, уголь и дизель; место разгрузки — РЖД"
-                  width={1920}
-                  height={1080}
-                  sizes="(max-width: 768px) 100vw, 900px"
-                  className="h-auto w-full"
-                />
-              </div>
-            </div>
-          </AccordionContent>
-        </AccordionItem>
       </Accordion>
       <p role="status" aria-live="polite" className="sr-only">
         {copyStatus}

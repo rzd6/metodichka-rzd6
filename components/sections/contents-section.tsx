@@ -24,7 +24,7 @@ import {
   Users,
   Globe,
   PenLine,
-  PackageOpen,
+  Truck,
 } from "lucide-react"
 import { useTheme } from "@/contexts/theme-context"
 import type { UserRole } from "@/data/users"
@@ -68,7 +68,7 @@ export function ContentsSection({ onSectionChange, userRole, secondaryRole }: Co
     },
     {
       id: "mini-tasks",
-      icon: PackageOpen,
+      icon: Truck,
       title: "Мини-задания",
       description: "Правила поставок, RP-шаблоны и карта мест загрузки.",
       canAccess: true,
