@@ -3698,7 +3698,7 @@ export function ReportGenerationSection() {
       {/* Upload Dialog */}
       <Dialog open={showTitleDialog} onOpenChange={setShowTitleDialog}>
         <DialogContent
-          className={`w-[min(92vw,36rem)] max-h-[88vh] overflow-y-auto ${theme.mode === "dark" ? "bg-[#0f1419] border-white/10" : "bg-white border-gray-200"}`}
+          className={`w-[min(92vw,36rem)] max-h-[min(88dvh,52rem)] overflow-hidden ${theme.mode === "dark" ? "bg-[#0f1419] border-white/10" : "bg-white border-gray-200"}`}
         >
           <DialogHeader>
             <DialogTitle className={theme.mode === "dark" ? "text-white" : "text-gray-900"}>
@@ -3710,8 +3710,8 @@ export function ReportGenerationSection() {
                 : "Укажите тип и название выполненной работы"}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="rounded-xl border border-dashed border-white/15 bg-black/10 p-3">
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col rounded-xl border border-dashed border-white/15 bg-black/10 p-3">
               <div className="mb-3 flex items-center justify-between gap-3">
                 <div>
                   <p className="text-sm font-medium">Предпросмотр скриншотов</p>
@@ -3732,7 +3732,7 @@ export function ReportGenerationSection() {
                   }}
                 />
               </div>
-              <div className="grid max-h-[360px] grid-cols-2 gap-3 overflow-y-auto pr-1 sm:grid-cols-3">
+              <div className="grid max-h-[min(42dvh,24rem)] grid-cols-2 content-start gap-3 overflow-y-auto overscroll-contain pr-1 sm:grid-cols-3">
                 {previewUrls.map((url, index) => {
                   const isFileUploading = uploadingFileIndexes.has(index)
                   return (
@@ -3782,7 +3782,7 @@ export function ReportGenerationSection() {
                       theme.mode === "dark" ? "bg-white/5 border-white/10 text-white" : "bg-white border-gray-300"
                     }
                   >
-                    <SelectValue placeholder="Выберите требование" />
+                      <SelectValue className="block max-w-full truncate text-left" placeholder="Выберите требование" />
                   </SelectTrigger>
                   <SelectContent
                     className={theme.mode === "dark" ? "bg-[#0f1419] border-white/10" : "bg-white border-gray-200"}
@@ -3800,7 +3800,7 @@ export function ReportGenerationSection() {
                                 : "text-gray-900 hover:bg-gray-100"
                             }
                           >
-                            {req}
+                            <span className="block max-w-[min(72vw,28rem)] truncate">{req}</span>
                           </SelectItem>
                         ))
                         : null

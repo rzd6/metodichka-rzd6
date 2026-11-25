@@ -682,7 +682,7 @@ export function AdminSection() {
               Управление системными разделами приложения
             </p>
           </div>
-          <div className="ml-auto flex shrink-0 items-center gap-2">
+          <div className="ml-auto flex shrink-0 items-center gap-2 self-stretch">
             <BugReportButton sectionLabel="admin" />
           </div>
         </div>
@@ -795,7 +795,7 @@ export function AdminSection() {
             </div>
           )}
         </div>
-          <div className="ml-auto flex shrink-0 items-center gap-2">
+          <div className="ml-auto flex shrink-0 items-center gap-2 self-stretch">
             <BugReportButton sectionLabel="admin" />
             <Button
 

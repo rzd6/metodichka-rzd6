@@ -1,120 +1,173 @@
+export type MiniTaskPort = "Невского" | "Приволжска"
+
 export interface MiniTask {
   id: string
   title: string
-  cargo: string
   destination: string
-  loadingLocation: string
-  loadingArea: "container" | "garage"
+  portChoice?: boolean
+  dispatchNotice: string
+  arrivalCargo: string
+  cargoLabel: string
+  loadingArea: "контейнере" | "гараже"
+  storage: "контейнер" | "гараж"
   loadingVerb: string
-  unloadingItem: string
+  loadingLiftVerb: string
+  unloadingVerb: string
+  unloadingLiftVerb: string
+}
+
+export interface MiniTaskStage {
+  id: string
+  title: string
+  lines: string[]
 }
 
 export const MINI_TASKS: MiniTask[] = [
   {
     id: "uniform",
     title: "Поставка формы",
-    cargo: "Ящики с формой",
     destination: "городской порт Невского / Приволжска",
-    loadingLocation: "контейнере",
-    loadingArea: "container",
+    portChoice: true,
+    dispatchNotice: "Заняли ЗИЛ для поставки рабочей формы.",
+    arrivalCargo: "формы",
+    cargoLabel: "Ящики",
+    loadingArea: "контейнере",
+    storage: "контейнер",
     loadingVerb: "ящик с формой",
-    unloadingItem: "ящик с формой",
+    loadingLiftVerb: "ящик с формой",
+    unloadingVerb: "ящик с формой",
+    unloadingLiftVerb: "ящик с формой",
   },
   {
     id: "spare-parts",
     title: "Поставка запчастей",
-    cargo: "Коробки с запчастями",
     destination: "городской порт Приволжска",
-    loadingLocation: "гараже",
-    loadingArea: "garage",
+    dispatchNotice: "Заняли ЗИЛ для поставки запчастей.",
+    arrivalCargo: "запчастей",
+    cargoLabel: "Коробки",
+    loadingArea: "гараже",
+    storage: "гараж",
     loadingVerb: "коробку с запчастями",
-    unloadingItem: "ящик с коробками",
+    loadingLiftVerb: "коробку с запчастями",
+    unloadingVerb: "ящик с коробками",
+    unloadingLiftVerb: "ящик с коробками",
   },
   {
     id: "brake-shoes",
     title: "Поставка башмаков",
-    cargo: "Пачки башмаков",
     destination: "завод ЖБК г. Приволжска",
-    loadingLocation: "гараже",
-    loadingArea: "garage",
+    dispatchNotice: "Заняли ЗИЛ для поставки башмаков.",
+    arrivalCargo: "башмаков",
+    cargoLabel: "Пачки башмаков",
+    loadingArea: "гараже",
+    storage: "гараж",
     loadingVerb: "пачку башмаков",
-    unloadingItem: "пачку башмаков",
+    loadingLiftVerb: "пачку башмаков",
+    unloadingVerb: "пачку башмаков",
+    unloadingLiftVerb: "пачку башмаков",
   },
   {
     id: "coal",
     title: "Поставка угля",
-    cargo: "Мешки с углём",
     destination: "шахту г. Мирного",
-    loadingLocation: "гараже",
-    loadingArea: "garage",
+    dispatchNotice: "Заняли ЗИЛ для поставки угля для паровоза.",
+    arrivalCargo: "угля",
+    cargoLabel: "Мешки с углём",
+    loadingArea: "гараже",
+    storage: "гараж",
     loadingVerb: "мешок угля",
-    unloadingItem: "мешок угля",
+    loadingLiftVerb: "мешок с углём",
+    unloadingVerb: "мешок угля",
+    unloadingLiftVerb: "мешок угля",
   },
   {
     id: "diesel",
     title: "Поставка дизеля",
-    cargo: "Канистры с дизельным топливом",
     destination: "шахту г. Мирного",
-    loadingLocation: "гараже",
-    loadingArea: "garage",
+    dispatchNotice: "Заняли ЗИЛ для поставки дизельного топлива для тепловоза.",
+    arrivalCargo: "дизельного топлива",
+    cargoLabel: "Канистры с дизельным топливом",
+    loadingArea: "гараже",
+    storage: "гараж",
     loadingVerb: "канистру с дизельным топливом",
-    unloadingItem: "канистру с топливом",
+    loadingLiftVerb: "канистру с топливом",
+    unloadingVerb: "канистру с топливом",
+    unloadingLiftVerb: "канистру с дизельным топливом",
   },
 ]
 
 export const MINI_TASK_RULES = [
-  "Выполнение ограничено тремя мини-заданиями в неделю.",
-  "Мини-задания доступны сотрудникам от должности «Монтёр пути» (ранг 2).",
-  "Для подтверждения подготовьте пять скриншотов: отправление из РЖД, прибытие на место назначения, RP-погрузка, RP-разгрузка и возвращение в РЖД.",
-  "Используйте ЗИЛ-131. Если его нет, допускается УАЗ-3309 «Буханка» — обязательно приложите скриншот отсутствия ЗИЛа.",
-  "Если есть напарник, погрузку и разгрузку выполняет именно он.",
-  "На месте загрузки не рекомендуется задерживаться дольше трёх минут.",
+  "Выполнение мини-заданий ограничено до 3 раз в неделю.",
+  "Мини-задания доступны сотрудникам от ранга «Монтёр пути» (2).",
+  "Для подтверждения выполнения необходимо сделать 5 скриншотов: отправление из РЖД, прибытие на место назначения, РП отыгровка погрузки, РП отыгровка разгрузки и прибытие в РЖД.",
+  "Мини-задания выполняются на автомобиле ЗИЛ-131. При его отсутствии используется УАЗ-3309 «Буханка» — обязательно сделайте скриншот отсутствия ЗИЛа.",
+  "При наличии напарника именно он выполняет погрузку и разгрузку.",
+  "На месте загрузки не рекомендуется задерживаться более 3 минут.",
 ]
 
-export const LOADING_UNLOADING_PHOTO = "https://i.imgur.com/uU3s5Qz.jpeg"
+export const LOADING_UNLOADING_PHOTO = "/images/design-mode/mini-tasks-locations.jpeg"
 
-export function getMiniTaskTemplate(task: MiniTask, options: { reportTag?: string; port?: string; helperName?: string } = {}) {
-  const isContainer = task.loadingArea === "container"
-  const destination = task.id === "uniform" && options.port ? `городской порт ${options.port}` : task.destination
-  const reportTag = options.reportTag || "[ТЭГ]"
-  const helper = options.helperName?.trim()
-  const helperLine = helper ? ` Напарник: ${helper}.` : ""
-  const replaceCommon = (line: string) => line.replaceAll("[ТЭГ]", reportTag).replaceAll("Напарник: Имя Фамилия (если имеется).", helperLine.trim())
-  const storageName = isContainer ? "Контейнер" : "Гараж"
-  const openStorage = isContainer ? "открыл контейнер" : "открыл гараж"
-  const closeStorage = isContainer ? "закрыл контейнер" : "закрыл гараж"
-  const cargoCount = task.cargo
+export function getMiniTaskTemplate(
+  task: MiniTask,
+  options: { reportTag?: string; port?: MiniTaskPort; helperName?: string } = {},
+): MiniTaskStage[] {
+  const reportTag = options.reportTag?.trim() || "[ТЭГ]"
+  const helperName = options.helperName?.trim()
+  const partnerSuffix = helperName ? ` Напарник: ${helperName}.` : ""
+  const destination = task.portChoice && options.port ? `городской порт ${options.port}` : task.destination
+  const storageName = task.storage === "контейнер" ? "Контейнер" : "Гараж"
+  const announce = (message: string, withPartner = false) =>
+    `r ${reportTag} ${message}${withPartner ? partnerSuffix : ""}`
 
   return [
-    "Отправление:",
-    `r [ТЭГ] Заняли ЗИЛ для ${task.title.toLowerCase().replace(/^поставка/, "поставки")}.`,
-    `r [ТЭГ] Отправляемся в ${destination}. Напарник: Имя Фамилия (если имеется).`,
-    "",
-    "Прибытие на место загрузки:",
-    `r [ТЭГ] Прибыли в ${destination}. Начинаем погрузку. Напарник: Имя Фамилия (если имеется).`,
-    "",
-    "Погрузка:",
-    `do ${cargoCount} в ${task.loadingLocation}.`,
-    `me достал ключ из кармана и ${openStorage}`,
-    `do ${storageName} открыт.`,
-    `me взял ${task.loadingVerb} и положил в кузов авто`,
-    `me подняв ${task.loadingVerb}, поместил в автомобиль`,
-    `do ${cargoCount} в автомобиле.`,
-    `me ${closeStorage} и положил ключ в карман`,
-    "",
-    "Возвращение:",
-    'r [ТЭГ] Возвращаемся в здание ОАО "РЖД". Напарник: Имя Фамилия (если имеется).',
-    "",
-    "Разгрузка:",
-    `do ${cargoCount} в автомобиле.`,
-    "me достал ключ из кармана и открыл дверь в подвал",
-    "do Подвал здания открыт.",
-    `me достал ${task.unloadingItem} из автомобиля и положил в подвал`,
-    `me взяв ${task.unloadingItem} из кузова авто, поместил в подвал`,
-    `do ${cargoCount} в подвале здания.`,
-    "me закрыл подвал и положил ключ в карман",
-    "",
-    "Прибытие в РЖД:",
-    'r [ТЭГ] Прибыли в здание РЖД. Разгрузка окончена. Напарник: Имя Фамилия (если имеется).',
-  ].map(replaceCommon).join("\n")
+    {
+      id: "departure",
+      title: "Отправление",
+      lines: [
+        announce(task.dispatchNotice),
+        announce(`Отправляемся в ${destination}.`, true),
+      ],
+    },
+    {
+      id: "arrival",
+      title: "Прибытие",
+      lines: [announce(`Прибыли в ${destination}. Начинаем погрузку ${task.arrivalCargo}.`, true)],
+    },
+    {
+      id: "loading",
+      title: "Погрузка",
+      lines: [
+        `do ${task.cargoLabel} в ${task.loadingArea}.`,
+        `me достал ключ из кармана и открыл ${task.storage}`,
+        `do ${storageName} открыт.`,
+        `me взял ${task.loadingVerb} и положил в кузов авто`,
+        `me подняв ${task.loadingLiftVerb}, поместил в автомобиль`,
+        `do ${task.cargoLabel} в автомобиле.`,
+        `me закрыл ${task.storage} и положил ключ в карман`,
+      ],
+    },
+    {
+      id: "return",
+      title: "Отправление обратно",
+      lines: [announce('Возвращаемся в здание ОАО "РЖД".', true)],
+    },
+    {
+      id: "unloading",
+      title: "Разгрузка",
+      lines: [
+        `do ${task.cargoLabel} в автомобиле.`,
+        "me достал ключ из кармана и открыл дверь в подвал",
+        "do Подвал здания открыт.",
+        `me достал ${task.unloadingVerb} из автомобиля, и положил в подвал`,
+        `me взяв ${task.unloadingLiftVerb} из кузова авто, поместил в подвал`,
+        `do ${task.cargoLabel} в подвале здания.`,
+        "me закрыл подвал и положил ключ в карман",
+      ],
+    },
+    {
+      id: "finish",
+      title: "Прибытие в РЖД",
+      lines: [announce('Прибыли в здание РЖД. Разгрузка окончена.', true)],
+    },
+  ]
 }

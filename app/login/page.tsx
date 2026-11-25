@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { authenticateUser, findUsersByVkId } from "@/data/users"
-import { DEV_VK_USER_ID, makeDevUser } from "@/lib/dev-account"
+import { DEV_LOGIN, DEV_VK_USER_ID, makeDevUser } from "@/lib/dev-account"
 import { useTheme } from "@/contexts/theme-context"
 import Image from "next/image"
 import { getAvatarFilterFromColor } from "@/lib/color-utils"
@@ -164,8 +164,10 @@ export default function LoginPage() {
     e.preventDefault()
     setError("")
     setLoading(true)
-    setLoadingStage("Обновляем данные сотрудников…")
-    await fetch("/api/sync-from-sheets", { cache: "no-store" }).catch(() => undefined)
+    if (nickname !== DEV_LOGIN) {
+      setLoadingStage("Обновляем данные сотрудников…")
+      await fetch("/api/sync-from-sheets", { cache: "no-store" }).catch(() => undefined)
+    }
     setLoadingStage("Проверяем логин и пароль…")
 
     if (!nickname || !password) {

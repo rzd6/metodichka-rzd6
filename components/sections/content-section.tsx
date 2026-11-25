@@ -57,6 +57,7 @@ interface ContentSectionProps {
   onSectionChange: (section: string) => void
   userRole?: UserRole
   userNickname?: string
+  userReportTag?: string
   secondaryRole?: "Тех. Администратор" | "РЖД"
 }
 
@@ -71,7 +72,7 @@ const BUILTIN_IDS = new Set([
   "report-compiler", "admin", "report-generation", "rzd-website", "train-schedule", "mini-tasks", "bug-report", "rp-bio-check",
 ])
 
-export function ContentSection({ activeSection, onSectionChange, userRole, userNickname, secondaryRole }: ContentSectionProps) {
+export function ContentSection({ activeSection, onSectionChange, userRole, userNickname, userReportTag, secondaryRole }: ContentSectionProps) {
   const [customSections, setCustomSections] = useState<CustomSection[]>([])
   const [customSectionsLoaded, setCustomSectionsLoaded] = useState(false)
 
@@ -173,7 +174,7 @@ export function ContentSection({ activeSection, onSectionChange, userRole, userN
           />
         )
       case "mini-tasks":
-        return <MiniTasksSection />
+        return <MiniTasksSection userReportTag={userReportTag} />
       case "rp-bio-check":
         return userRole === "Руководство" || userRole === "Тех. Администратор" || secondaryRole === "Тех. Администратор" ? <RpBioCheckSection /> : null
       case "bug-report":

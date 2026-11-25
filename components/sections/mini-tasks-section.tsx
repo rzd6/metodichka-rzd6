@@ -1,219 +1,356 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { Check, Clipboard, Clock3, ImageIcon, ShieldCheck, Truck } from "lucide-react"
-import { clipboardCopy } from "@/lib/clipboard"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import Image from "next/image"
+import { useState } from "react"
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
+import {
+  Field,
+  FieldLabel,
+} from "@/components/ui/field"
+import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
+  Camera,
+  Check,
+  Copy,
+  MapPin,
+  ShieldCheck,
+  Truck,
+  UserRound,
+} from "lucide-react"
 import { useTheme } from "@/contexts/theme-context"
 import { getThemeColor } from "@/lib/theme-utils"
-import { getMiniTaskTemplate, LOADING_UNLOADING_PHOTO, MINI_TASKS, MINI_TASK_RULES } from "@/data/mini-tasks"
-import { getEffectiveReportTag } from "@/data/users"
-import { Input } from "@/components/ui/input"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { Skeleton } from "@/components/ui/skeleton"
+import {
+  LOADING_UNLOADING_PHOTO,
+  MINI_TASK_RULES,
+  MINI_TASKS,
+  getMiniTaskTemplate,
+  type MiniTaskStage,
+} from "@/data/mini-tasks"
 
-export function MiniTasksSection() {
+interface MiniTasksSectionProps {
+  userReportTag?: string
+}
+
+interface CopyableStageProps {
+  taskId: string
+  stage: MiniTaskStage
+  copiedLineId: string | null
+  isDark: boolean
+  accentColor: string
+  onCopy: (text: string, id: string) => void
+}
+
+function CopyableStage({
+  taskId,
+  stage,
+  copiedLineId,
+  isDark,
+  accentColor,
+  onCopy,
+}: CopyableStageProps) {
+  const stagePrefix = `${taskId}:${stage.id}:`
+  const lastCopiedIndex = copiedLineId?.startsWith(stagePrefix)
+    ? Number(copiedLineId.slice(stagePrefix.length))
+    : -1
+
+  return (
+    <section
+      aria-label={stage.title}
+      className={`rounded-xl border p-4 ${isDark ? "border-white/10 bg-[#0f1419]/50" : "border-gray-200 bg-gray-50/80"}`}
+    >
+      <h4
+        className="mb-3 text-xs font-semibold uppercase tracking-[0.14em]"
+        style={{ color: accentColor }}
+      >
+        {stage.title}
+      </h4>
+      <div className="flex flex-col gap-2">
+        {stage.lines.map((line, index) => {
+          const lineId = `${stagePrefix}${index}`
+          const isCopied = copiedLineId === lineId
+          const isNext = lastCopiedIndex >= 0 && index === lastCopiedIndex + 1
+
+          return (
+            <button
+              key={lineId}
+              type="button"
+              onClick={() => onCopy(line, lineId)}
+              aria-label={`${isCopied ? "Скопировано" : "Скопировать"}: ${line}`}
+              className={`group flex w-full items-start justify-between gap-3 rounded-lg border p-3 text-left transition-colors ${
+                isCopied
+                  ? isDark
+                    ? "border-green-500/50 bg-green-950/40 text-green-200"
+                    : "border-green-400 bg-green-50 text-green-800"
+                  : isNext
+                    ? isDark
+                      ? "border-white/30 bg-white/10 text-white"
+                      : "border-gray-400 bg-white text-gray-950"
+                    : isDark
+                      ? "border-white/5 bg-black/20 text-white/85 hover:border-white/20 hover:bg-white/5"
+                      : "border-gray-200 bg-white text-gray-800 hover:border-gray-300"
+              }`}
+              style={{
+                borderLeftWidth: 3,
+                borderLeftColor: isCopied ? "#22c55e" : accentColor,
+                boxShadow: isNext ? `0 0 0 1px ${accentColor}50` : undefined,
+              }}
+            >
+              <span className="min-w-0 flex-1 break-words whitespace-pre-wrap text-sm leading-relaxed">
+                {line}
+              </span>
+              <span
+                aria-hidden="true"
+                className="flex size-8 shrink-0 items-center justify-center rounded-lg"
+                style={{ backgroundColor: isCopied ? "#22c55e20" : `${accentColor}20` }}
+              >
+                {isCopied ? (
+                  <Check className="size-4 text-green-500" />
+                ) : (
+                  <Copy className="size-4 opacity-70 group-hover:opacity-100" style={{ color: accentColor }} />
+                )}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+    </section>
+  )
+}
+
+export function MiniTasksSection({ userReportTag }: MiniTasksSectionProps) {
   const { theme } = useTheme()
-  const tieColor = getThemeColor(theme.colorTheme)
+  const accentColor = getThemeColor(theme.colorTheme)
   const isDark = theme.mode === "dark"
-  const [copiedLine, setCopiedLine] = useState<string | null>(null)
-  const [reportTag, setReportTag] = useState("[ТЭГ]")
-  const [port, setPort] = useState("Невского")
   const [helperName, setHelperName] = useState("")
-  const [photoState, setPhotoState] = useState<"loading" | "loaded" | "error">("loading")
-  const textColor = isDark ? "text-white" : "text-gray-900"
-  const mutedColor = isDark ? "text-white/65" : "text-gray-600"
-  const surface = isDark ? "border-white/10 bg-[#0f1419]/60" : "border-gray-200 bg-white/90"
+  const [port, setPort] = useState<"Невского" | "Приволжска">("Невского")
+  const reportTag = userReportTag?.trim() || "[ТЭГ]"
+  const [copiedLineId, setCopiedLineId] = useState<string | null>(null)
+  const [copyStatus, setCopyStatus] = useState("")
 
-  useEffect(() => {
+  const copyToClipboard = async (text: string, id: string) => {
     try {
-      const userData = JSON.parse(localStorage.getItem("currentUser") || "null")
-      if (userData) setReportTag(getEffectiveReportTag(userData))
+      await navigator.clipboard.writeText(text)
+      setCopiedLineId(id)
+      setCopyStatus("Строка скопирована в буфер обмена.")
     } catch {
-      setReportTag("[ТЭГ]")
+      setCopiedLineId(null)
+      setCopyStatus("Не удалось скопировать строку. Проверьте разрешение браузера на буфер обмена.")
     }
-  }, [])
-
-  const copyLine = (lineId: string, line: string) => {
-    clipboardCopy(line)
-    setCopiedLine(lineId)
-    window.setTimeout(() => setCopiedLine((current) => current === lineId ? null : current), 1800)
   }
 
   return (
-    <section className="space-y-5" aria-labelledby="mini-tasks-heading">
-      <header className="flex items-center gap-3 border-b pb-4" style={{ borderColor: `${tieColor}55` }}>
-        <div className="rounded-xl p-3" style={{ background: `linear-gradient(135deg, ${tieColor}20, ${tieColor}10)` }}>
-          <Truck className="size-6" style={{ color: tieColor }} aria-hidden="true" />
+    <section aria-labelledby="mini-tasks-heading" className="flex flex-col gap-6 opacity-95">
+      <header
+        className="flex items-center gap-3 border-b pb-4 pr-12"
+        style={{ borderColor: `${accentColor}40` }}
+      >
+        <div
+          aria-hidden="true"
+          className="rounded-xl p-3"
+          style={{ background: `linear-gradient(135deg, ${accentColor}25, ${accentColor}10)` }}
+        >
+          <Truck className="size-6" style={{ color: accentColor }} />
         </div>
         <div>
-          <h1 id="mini-tasks-heading" className="text-3xl font-bold" style={{ color: tieColor }}>Мини-задания</h1>
-          <p className={`mt-1 text-sm ${mutedColor}`}>Поставка материалов для нужд ОАО «РЖД»</p>
+          <h2 id="mini-tasks-heading" className="text-2xl font-bold sm:text-3xl" style={{ color: accentColor }}>
+            Мини-задания
+          </h2>
+          <p className={`text-sm ${isDark ? "text-white/70" : "text-gray-600"}`}>
+            Поставки для нужд РЖД: правила, РП-шаблоны и места загрузки
+          </p>
         </div>
       </header>
 
-      <Card className={`rounded-2xl ${surface}`}>
-        <CardHeader className="pb-2">
-          <h2 className={`flex items-center gap-2 text-lg font-semibold ${textColor}`}>
-            <ShieldCheck className="size-5" style={{ color: tieColor }} aria-hidden="true" />
-            Правила выполнения
-          </h2>
-        </CardHeader>
-        <CardContent>
-          <ul className={`grid gap-3 text-sm sm:grid-cols-2 ${mutedColor}`}>
-            {MINI_TASK_RULES.map((rule, index) => (
-              <li key={rule} className={`flex items-start gap-2.5 rounded-xl border p-3 ${isDark ? "border-white/10" : "border-black/10"}`}>
-                <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white" style={{ backgroundColor: tieColor }}>{index + 1}</span>
-                <span>{rule}</span>
-              </li>
-            ))}
-          </ul>
-          <div className={`mt-4 flex items-center gap-2 text-sm ${mutedColor}`}>
-            <Clock3 className="size-4 shrink-0" style={{ color: tieColor }} aria-hidden="true" />
-            <span>Лимит — 3 задания в неделю; время на загрузке — не более 3 минут.</span>
+      <Accordion type="single" collapsible defaultValue="rules" className="flex flex-col gap-4">
+        <AccordionItem
+          value="rules"
+          className={`overflow-hidden rounded-2xl border-2 ${isDark ? "border-white/10 bg-[#0f1419]/50" : "border-gray-200 bg-white"}`}
+        >
+          <AccordionTrigger className="px-5 py-4 text-left hover:no-underline sm:px-6">
+            <span className="flex items-center gap-3">
+              <ShieldCheck className="size-5 shrink-0" style={{ color: accentColor }} aria-hidden="true" />
+              <span className={`font-bold ${isDark ? "text-white" : "text-gray-900"}`}>
+                Правила выполнения мини-заданий
+              </span>
+            </span>
+          </AccordionTrigger>
+          <AccordionContent className="px-5 pb-5 sm:px-6">
+            <ol className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              {MINI_TASK_RULES.map((rule, index) => (
+                <li
+                  key={rule}
+                  className={`flex items-start gap-3 rounded-xl border p-4 ${isDark ? "border-white/10 bg-black/20 text-white/80" : "border-gray-200 bg-gray-50 text-gray-700"}`}
+                  style={{ borderLeftWidth: 3, borderLeftColor: accentColor }}
+                >
+                  <span
+                    aria-hidden="true"
+                    className="flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-bold"
+                    style={{ backgroundColor: `${accentColor}20`, color: accentColor }}
+                  >
+                    {index + 1}
+                  </span>
+                  <span className="text-sm leading-relaxed">{rule}</span>
+                </li>
+              ))}
+            </ol>
+          </AccordionContent>
+        </AccordionItem>
+
+        <section
+          aria-labelledby="loading-locations-heading"
+          className={`overflow-hidden rounded-2xl border-2 ${isDark ? "border-white/10 bg-[#0f1419]/50" : "border-gray-200 bg-white"}`}
+        >
+          <div className="flex items-center gap-3 px-5 pt-5 sm:px-6">
+            <MapPin className="size-5 shrink-0" style={{ color: accentColor }} aria-hidden="true" />
+            <div>
+              <h3 id="loading-locations-heading" className={`font-bold ${isDark ? "text-white" : "text-gray-900"}`}>
+                Места загрузки и разгрузки
+              </h3>
+              <p className={`mt-1 text-sm ${isDark ? "text-white/70" : "text-gray-600"}`}>
+                Точки загрузки для пяти поставок и общая точка разгрузки в здании РЖД.
+              </p>
+            </div>
           </div>
-        </CardContent>
-      </Card>
-
-      <Card className={`overflow-hidden rounded-2xl ${surface}`}>
-        <CardHeader className="pb-2">
-          <h2 className={`flex items-center gap-2 text-lg font-semibold ${textColor}`}>
-            <ImageIcon className="size-5" style={{ color: tieColor }} aria-hidden="true" />
-            Место загрузки и разгрузки
-          </h2>
-          <p className={`text-sm ${mutedColor}`}>Фото для ориентира при выполнении задания.</p>
-        </CardHeader>
-        <CardContent>
-          <a href={LOADING_UNLOADING_PHOTO} target="_blank" rel="noopener noreferrer" className={`relative block min-h-52 overflow-hidden rounded-xl border focus-visible:outline-none focus-visible:ring-2 ${isDark ? "border-white/10 bg-white/[0.03]" : "border-black/10 bg-black/[0.03]"}`} style={{ outlineColor: tieColor }}>
-            {photoState === "loading" && <Skeleton className="absolute inset-0 h-full w-full rounded-none" />}
-            {photoState === "error" ? (
-              <span className={`flex min-h-52 items-center justify-center px-4 text-sm ${mutedColor}`} role="status">Не удалось загрузить фото. Нажмите, чтобы открыть источник.</span>
-            ) : (
-              <img
-                src={LOADING_UNLOADING_PHOTO}
-                alt="Место загрузки и разгрузки для мини-заданий"
-                className={`max-h-[420px] w-full object-contain transition-opacity duration-300 ${photoState === "loaded" ? "opacity-100" : "opacity-0"}`}
-                loading="lazy"
-                onLoad={() => setPhotoState("loaded")}
-                onError={() => setPhotoState("error")}
-              />
-            )}
-          </a>
-          <a href={LOADING_UNLOADING_PHOTO} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex text-sm underline underline-offset-4" style={{ color: tieColor }}>
-            Открыть фото в полном размере
-          </a>
-        </CardContent>
-      </Card>
-
-      <div className="space-y-3">
-        <div>
-          <h2 className={`text-xl font-bold ${textColor}`}>Список мини-заданий</h2>
-          <p className={`mt-1 text-sm ${mutedColor}`}>Выберите поставку, чтобы открыть маршрут и RP-шаблон.</p>
-        </div>
-        <Card className={`rounded-2xl p-4 ${surface}`}>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className={`space-y-1.5 text-sm font-medium ${textColor}`}>
-              Порт для поставки формы
-              <select value={port} onChange={(event) => setPort(event.target.value)} className={`w-full rounded-lg border px-3 py-2 ${isDark ? "border-white/15 bg-[#111820]" : "border-gray-300 bg-white"}`}>
-                <option value="Невского">Невского</option>
-                <option value="Приволжска">Приволжска</option>
-              </select>
-            </label>
-            <label className={`space-y-1.5 text-sm font-medium ${textColor}`}>
-              Имя и фамилия помощника <span className={`font-normal ${mutedColor}`}>(необязательно)</span>
-              <Input value={helperName} onChange={(event) => setHelperName(event.target.value)} placeholder="Например, Иван Иванов" />
-            </label>
+          <div className="mx-4 mb-4 mt-4 overflow-hidden rounded-xl border-2 shadow-lg sm:mx-6 sm:mb-6" style={{ borderColor: `${accentColor}70`, boxShadow: `0 12px 36px ${accentColor}18` }}>
+            <Image
+              src={LOADING_UNLOADING_PHOTO}
+              alt="Схема мест загрузки: форма, запчасти, башмаки, уголь и дизель; место разгрузки — РЖД"
+              width={1920}
+              height={1080}
+              sizes="(max-width: 768px) 100vw, 900px"
+              className="h-auto w-full"
+            />
           </div>
-          <p className={`mt-3 text-xs ${mutedColor}`}>Тэг рации подставляется автоматически: <code className="font-mono">{reportTag}</code>. Строки шаблона можно нажимать для копирования.</p>
-        </Card>
-        <Accordion type="single" collapsible className="flex flex-col gap-4">
-          {MINI_TASKS.map((task) => {
-            const templateLines = getMiniTaskTemplate(task, { reportTag, port, helperName }).split("\n")
-            const sectionHeadings = new Set(["Отправление:", "Прибытие на место загрузки:", "Погрузка:", "Возвращение:", "Разгрузка:", "Прибытие в РЖД:"])
-            const destination = task.id === "uniform" ? `городской порт ${port}` : task.destination
-            const lastCopiedIndex = copiedLine?.startsWith(`${task.id}-`)
-              ? Number.parseInt(copiedLine.slice(task.id.length + 1), 10)
-              : -1
+        </section>
 
-            return (
-              <AccordionItem
-                key={task.id}
-                value={task.id}
-                className={`overflow-hidden rounded-2xl border-2 ${isDark ? "border-white/10 bg-[#0f1419]/50" : "border-gray-200 bg-white"}`}
-              >
-                <AccordionTrigger className="px-6 py-4 hover:no-underline">
-                  <span className="flex min-w-0 items-center gap-3 text-left">
-                    <Truck className="size-5 shrink-0" style={{ color: tieColor }} aria-hidden="true" />
-                    <span className="min-w-0">
-                      <span className={`block font-bold ${textColor}`}>{task.title}</span>
-                      <span className={`mt-1 block text-sm ${mutedColor}`}>{task.cargo} · {destination}</span>
+        <section
+          aria-labelledby="mini-task-settings-heading"
+          className={`rounded-2xl border-2 p-4 sm:p-5 ${isDark ? "border-white/10 bg-[#0f1419]/50" : "border-gray-200 bg-white/85"}`}
+        >
+          <div className="mb-4 flex items-center gap-3">
+            <UserRound className="size-5 shrink-0" style={{ color: accentColor }} aria-hidden="true" />
+            <div>
+              <h3 id="mini-task-settings-heading" className={`font-semibold ${isDark ? "text-white" : "text-gray-900"}`}>
+                Имя напарника
+              </h3>
+              <p className={`text-sm ${isDark ? "text-white/65" : "text-gray-600"}`}>
+                Необязательно. Если напарника нет, строка о нём не добавляется.
+              </p>
+            </div>
+          </div>
+          <Field className="max-w-md">
+            <FieldLabel htmlFor="mini-task-helper-name">Имя Фамилия</FieldLabel>
+            <Input
+              id="mini-task-helper-name"
+              autoComplete="off"
+              value={helperName}
+              onChange={(event) => setHelperName(event.target.value)}
+              placeholder="Имя Фамилия"
+            />
+          </Field>
+        </section>
+
+        {MINI_TASKS.map((task, taskIndex) => {
+          const stages = getMiniTaskTemplate(task, { reportTag, port, helperName })
+
+          return (
+            <AccordionItem
+              key={task.id}
+              value={task.id}
+              className={`overflow-hidden rounded-2xl border-2 ${isDark ? "border-white/10 bg-[#0f1419]/50" : "border-gray-200 bg-white"}`}
+            >
+              <AccordionTrigger className="px-5 py-4 text-left hover:no-underline sm:px-6">
+                <span className="flex min-w-0 items-start gap-3">
+                  <span
+                    aria-hidden="true"
+                    className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg"
+                    style={{ backgroundColor: `${accentColor}20`, color: accentColor }}
+                  >
+                    <Truck className="size-4" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className={`block font-bold ${isDark ? "text-white" : "text-gray-900"}`}>
+                      {taskIndex + 1}. {task.title}
+                    </span>
+                    <span className={`mt-1 block text-sm font-normal ${isDark ? "text-white/60" : "text-gray-600"}`}>
+                      {task.portChoice ? `городской порт ${port}` : task.destination}
                     </span>
                   </span>
-                </AccordionTrigger>
-                <AccordionContent
-                  className={`max-h-[min(70dvh,42rem)] overflow-x-hidden overflow-y-auto overscroll-contain px-6 pb-6 [scrollbar-gutter:stable] ${isDark ? "bg-[#0f1419]/50" : "bg-white"}`}
-                  style={{ borderColor: `${tieColor}30` }}
-                >
-                  <div className="flex flex-col gap-1">
-                    {templateLines.map((line, lineIndex) => {
-                      if (!line) return <div key={`${task.id}-${lineIndex}`} className="h-2" aria-hidden="true" />
-                      if (sectionHeadings.has(line)) {
-                        return (
-                          <h3 key={`${task.id}-${lineIndex}`} className={`pt-3 pb-1 font-semibold ${textColor}`}>
-                            {line}
-                          </h3>
-                        )
-                      }
+                </span>
+              </AccordionTrigger>
+              <AccordionContent className="px-4 pb-5 sm:px-6">
+                <div className="flex flex-col gap-3">
+                  {task.portChoice && (
+                    <Field className={`rounded-xl border p-4 ${isDark ? "border-white/10 bg-black/20" : "border-gray-200 bg-gray-50"}`}>
+                      <FieldLabel htmlFor="mini-task-port">Город для поставки формы</FieldLabel>
+                      <Select value={port} onValueChange={(value) => setPort(value as "Невского" | "Приволжска")}>
+                        <SelectTrigger id="mini-task-port" className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectGroup>
+                            <SelectLabel>Городской порт</SelectLabel>
+                            <SelectItem value="Невского">Невского</SelectItem>
+                            <SelectItem value="Приволжска">Приволжска</SelectItem>
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
+                    </Field>
+                  )}
+                  {stages.map((stage) => (
+                    <div key={stage.id} className="flex flex-col gap-2">
+                      <CopyableStage
+                        taskId={task.id}
+                        stage={stage}
+                        copiedLineId={copiedLineId}
+                        isDark={isDark}
+                        accentColor={accentColor}
+                        onCopy={copyToClipboard}
+                      />
+                      {({
+                        departure: "Сделайте скриншот отправления из РЖД.",
+                        arrival: "Сделайте скриншот прибытия на место назначения.",
+                        loading: "Сделайте скриншот РП-отыгровки погрузки.",
+                        unloading: "Сделайте скриншот РП-отыгровки разгрузки.",
+                        finish: "Сделайте скриншот прибытия в РЖД.",
+                      } as Record<string, string>)[stage.id] && (
+                        <p className={`flex items-center gap-2 px-2 text-xs ${isDark ? "text-white/55" : "text-gray-500"}`}>
+                          <Camera className="size-3.5 shrink-0" aria-hidden="true" />
+                          {({
+                            departure: "Сделайте скриншот отправления из РЖД.",
+                            arrival: "Сделайте скриншот прибытия на место назначения.",
+                            loading: "Сделайте скриншот РП-отыгровки погрузки.",
+                            unloading: "Сделайте скриншот РП-отыгровки разгрузки.",
+                            finish: "Сделайте скриншот прибытия в РЖД.",
+                          } as Record<string, string>)[stage.id]}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          )
+        })}
 
-                      const lineId = `${task.id}-${lineIndex}`
-                      const isCopied = copiedLine === lineId
-                      const isNext = lastCopiedIndex >= 0 && lineIndex === lastCopiedIndex + 1
-
-                      return (
-                        <button
-                          key={lineId}
-                          type="button"
-                          onClick={() => copyLine(lineId, line)}
-                          aria-label={`${isCopied ? "Скопировано:" : "Скопировать строку:"} ${line}`}
-                          className={`group mb-2 w-full rounded-xl border-2 p-4 text-left transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 ${isCopied
-                            ? isDark ? "border-green-500/60 bg-gradient-to-r from-green-900/40 to-green-900/20" : "border-green-400 bg-gradient-to-r from-green-50 to-green-50/60"
-                            : isNext
-                              ? isDark ? "border-white/40 bg-gradient-to-r from-[#0f1419]/80 to-[#0f1419]/60 shadow-md" : "border-gray-400 bg-gradient-to-r from-white to-gray-50/60 shadow-md"
-                              : isDark ? "border-white/10 bg-gradient-to-r from-[#0f1419]/80 to-[#0f1419]/60 hover:border-white/30" : "border-gray-200 bg-gradient-to-r from-white/80 to-gray-50/60 hover:border-gray-300"}`}
-                          style={{
-                            borderLeftWidth: "4px",
-                            borderLeftColor: isCopied ? "#22c55e" : tieColor,
-                            boxShadow: isNext ? `0 0 0 2px ${tieColor}40` : undefined,
-                          }}
-                        >
-                          <span className="flex min-w-0 items-start justify-between gap-4">
-                            <span className={`min-w-0 flex-1 whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-sm ${isCopied ? "text-green-500" : isNext ? `${textColor} font-medium` : isDark ? "text-white/90" : "text-gray-900"}`}>
-                              {line}
-                            </span>
-                            <span
-                              className="flex size-8 shrink-0 items-center justify-center rounded-lg transition-all duration-200"
-                              style={{ backgroundColor: isCopied ? "#22c55e20" : `${tieColor}20` }}
-                            >
-                              {isCopied ? (
-                                <Check className="size-4 text-green-500" aria-hidden="true" />
-                              ) : (
-                                <Clipboard className="size-4 opacity-60 transition-opacity group-hover:opacity-100" style={{ color: tieColor }} aria-hidden="true" />
-                              )}
-                            </span>
-                          </span>
-                        </button>
-                      )
-                    })}
-                  </div>
-                  <p role="status" aria-live="polite" className="sr-only">
-                    {copiedLine?.startsWith(`${task.id}-`) ? "Строка доклада скопирована" : ""}
-                  </p>
-                </AccordionContent>
-              </AccordionItem>
-            )
-          })}
-        </Accordion>
-      </div>
+      </Accordion>
+      <p role="status" aria-live="polite" className="sr-only">
+        {copyStatus}
+      </p>
     </section>
   )
 }
