@@ -1,7 +1,7 @@
 "use client"
 
 import Image from "next/image"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Accordion,
   AccordionContent,
@@ -40,6 +40,7 @@ import {
   getMiniTaskTemplate,
   type MiniTaskStage,
 } from "@/data/mini-tasks"
+import { getEffectiveReportTag } from "@/data/users"
 
 interface MiniTasksSectionProps {
   userReportTag?: string
@@ -137,7 +138,21 @@ export function MiniTasksSection({ userReportTag }: MiniTasksSectionProps) {
   const isDark = theme.mode === "dark"
   const [helperName, setHelperName] = useState("")
   const [port, setPort] = useState<"Невского" | "Приволжска">("Невского")
-  const reportTag = userReportTag?.trim() || "[ТЭГ]"
+  const [reportTag, setReportTag] = useState(userReportTag?.trim() || "[ТЭГ]")
+
+  // Служебный тег в докладах определяется автоматически по должности пользователя,
+  // аналогично разделу "Доклады в рацию".
+  useEffect(() => {
+    const authData = localStorage.getItem("currentUser")
+    if (authData) {
+      try {
+        const userData = JSON.parse(authData)
+        setReportTag(getEffectiveReportTag(userData))
+      } catch {
+        // Keep the fallback value if parsing fails
+      }
+    }
+  }, [])
   const [copiedLineId, setCopiedLineId] = useState<string | null>(null)
   const [copyStatus, setCopyStatus] = useState("")
 
