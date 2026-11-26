@@ -10,6 +10,7 @@ import type { UserRole } from "@/data/users"
 import { getAllUsers } from "@/data/users"
 import { getThemeColor } from "@/lib/theme-utils"
 import { proxyImageUrl } from "@/lib/image-proxy"
+import { getArticles } from "@/lib/supabase-rzd"
 import { OnboardingTour } from "@/components/onboarding-tour"
 
 interface LocalUser {
@@ -204,6 +205,35 @@ function MainContentInner() {
     }
 
     refreshFromDb(userData)
+
+    // Проверяем непрочитанные уведомления при заходе/обновлении страницы.
+    // Статус прочтения хранится в localStorage (ключ rzd-notifications-read).
+    const checkUnreadNotifications = async () => {
+      try {
+        const all = await getArticles()
+        const filtered = all.filter((a) => {
+          if (!a.is_published || !Array.isArray(a.allowed_roles)) return false
+          if (userData.role === "Тех. Администратор" || userData.secondaryRole === "Тех. Администратор") return true
+          return a.allowed_roles.includes(userData.role) || (userData.secondaryRole ? a.allowed_roles.includes(userData.secondaryRole) : false)
+        })
+
+        try {
+          const read = JSON.parse(localStorage.getItem("rzd-notifications-read") || "[]")
+          const readIds = Array.isArray(read) ? read : []
+          const hasUnread = filtered.some((a) => !readIds.includes(Number(a.id)))
+          if (hasUnread) {
+            localStorage.setItem("rzd-notifications-has-unread", "1")
+            window.dispatchEvent(new CustomEvent("autoOpenNotifications"))
+          }
+        } catch {
+          localStorage.setItem("rzd-notifications-has-unread", "1")
+          window.dispatchEvent(new CustomEvent("autoOpenNotifications"))
+        }
+      } catch {
+        // Не блокируем загрузку приложения из-за ошибки уведомлений
+      }
+    }
+    checkUnreadNotifications()
 
     const handleUserUpdate = () => {
       const latest = localStorage.getItem("currentUser")

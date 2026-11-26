@@ -17,6 +17,8 @@ interface NotificationsModalProps {
   userRole: UserRole
   secondaryRole?: string
   refreshKey?: string
+  userId?: string
+  onUnreadChange?: (count: number) => void
 }
 
 function RoleBadgeIcon({ role, color }: { role: string; color: string }) {
@@ -81,7 +83,7 @@ function LinkifiedText({ text, color }: { text: string; color: string }) {
   return <>{parts}</>
 }
 
-export function NotificationsModal({ open, onOpenChange, userRole, secondaryRole, refreshKey }: NotificationsModalProps) {
+export function NotificationsModal({ open, onOpenChange, userRole, secondaryRole, refreshKey, userId, onUnreadChange }: NotificationsModalProps) {
   const { theme } = useTheme()
   const [articles, setArticles] = useState<Article[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -89,6 +91,27 @@ export function NotificationsModal({ open, onOpenChange, userRole, secondaryRole
   const [authorAvatars, setAuthorAvatars] = useState<Record<string, string | null>>({})
 
   const getTieColor = () => getThemeColor(theme.colorTheme)
+
+  const READ_KEY = "rzd-notifications-read"
+  const HAS_UNREAD_KEY = "rzd-notifications-has-unread"
+
+  const getReadIds = (): number[] => {
+    try {
+      const raw = localStorage.getItem(READ_KEY)
+      if (!raw) return []
+      const parsed = JSON.parse(raw)
+      return Array.isArray(parsed) ? parsed : []
+    } catch {
+      return []
+    }
+  }
+
+  const markAsRead = (ids: number[]) => {
+    const current = getReadIds()
+    const merged = [...new Set([...current, ...ids])]
+    localStorage.setItem(READ_KEY, JSON.stringify(merged))
+    localStorage.setItem(HAS_UNREAD_KEY, "0")
+  }
 
   useEffect(() => {
     if (!open) return
@@ -103,6 +126,20 @@ export function NotificationsModal({ open, onOpenChange, userRole, secondaryRole
           return a.allowed_roles.includes(userRole) || (secondaryRole ? a.allowed_roles.includes(secondaryRole) : false)
         })
         setArticles(filtered)
+
+        const readIds = getReadIds()
+        const unread = filtered.filter((a) => !readIds.includes(Number(a.id)))
+
+        // Сообщаем родителю количество непрочитанных
+        if (onUnreadChange) {
+          onUnreadChange(unread.length)
+        }
+
+        // Помечаем прочитанными в localStorage (не требует Supabase)
+        if (filtered.length > 0) {
+          markAsRead(filtered.map((a) => Number(a.id)))
+          localStorage.setItem(HAS_UNREAD_KEY, "0")
+        }
 
         // Fetch custom avatars for authors from users API
         const authorIds = [...new Set(filtered.map((a) => a.author_id).filter(Boolean))]
@@ -125,9 +162,12 @@ export function NotificationsModal({ open, onOpenChange, userRole, secondaryRole
       .catch((err: any) => {
         setError(err?.message || "Не удалось загрузить уведомления")
         setArticles([])
+        if (onUnreadChange) {
+          onUnreadChange(0)
+        }
       })
       .finally(() => setIsLoading(false))
-  }, [open, userRole, secondaryRole, refreshKey])
+  }, [open, userRole, secondaryRole, refreshKey, onUnreadChange])
 
   const getAuthorBlock = (article: Article) => {
     const isFaction = article.author_name === "Группа РЖД"

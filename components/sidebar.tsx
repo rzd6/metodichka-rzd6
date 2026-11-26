@@ -593,32 +593,25 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed, setIsColl
   useEffect(() => {
     const closeForOnboarding = () => setShowNotifications(false)
     const closeSettingsForOnboarding = () => setShowSettings(false)
+    const handleAutoOpen = () => {
+      // При автооткрытии модалка сама пометит уведомления прочитанными через API,
+      // поэтому обнуляем счётчик сразу.
+      setUnreadCount(0)
+      setShowNotifications(true)
+    }
     window.addEventListener("closeNotificationsForOnboarding", closeForOnboarding)
     window.addEventListener("closeSettingsForOnboarding", closeSettingsForOnboarding)
+    window.addEventListener("autoOpenNotifications", handleAutoOpen)
     return () => {
       window.removeEventListener("closeNotificationsForOnboarding", closeForOnboarding)
       window.removeEventListener("closeSettingsForOnboarding", closeSettingsForOnboarding)
+      window.removeEventListener("autoOpenNotifications", handleAutoOpen)
     }
   }, [])
 
   const handleOpenNotifications = async () => {
-  setShowNotifications(true)
+    setShowNotifications(true)
     setUnreadCount(0)
-    // Persist which articles are read so count stays 0 after page reload
-    try {
-      const { getArticles } = await import("@/lib/supabase-rzd")
-      const all = await getArticles()
-      const visible = all.filter((article: any) => {
-        if (!article.is_published || !Array.isArray(article.allowed_roles)) return false
-        if (user.role === "Тех. Администратор" || user.secondaryRole === "Тех. Администратор") return true
-        return article.allowed_roles.includes(user.role) || (user.secondaryRole ? article.allowed_roles.includes(user.secondaryRole) : false)
-      })
-      const readKey = `readArticles_${user.id || user.nickname || "guest"}`
-      const ids = visible.map((article: any) => String(article.id))
-      localStorage.setItem(readKey, JSON.stringify(ids))
-    } catch {
-      // silent
-    }
   }
 
   const handleLogout = () => {
@@ -811,7 +804,7 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed, setIsColl
       </aside>
 
       <SettingsModal open={showSettings} onOpenChange={setShowSettings} initialTab={settingsInitialTab} onRestartOnboarding={() => { setShowSettings(false); window.dispatchEvent(new Event("restartOnboarding")) }} />
-      <NotificationsModal open={showNotifications} onOpenChange={setShowNotifications} userRole={user.role} secondaryRole={user.secondaryRole} refreshKey={vkNewsSync?.checkedAt} />
+      <NotificationsModal open={showNotifications} onOpenChange={setShowNotifications} userRole={user.role} secondaryRole={user.secondaryRole} refreshKey={vkNewsSync?.checkedAt} userId={user.id} onUnreadChange={setUnreadCount} />
     </>
   )
 }
