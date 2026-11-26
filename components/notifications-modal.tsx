@@ -3,7 +3,6 @@
 import { useState, useEffect, type ReactNode } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { Bell, Users, X, Crown, Shield, UsersRound, Train, Wrench, Terminal } from "lucide-react"
 import Image from "next/image"
 import { getArticles, type Article } from "@/lib/supabase-rzd"
@@ -11,10 +10,6 @@ import { useTheme } from "@/contexts/theme-context"
 import { getThemeColor } from "@/lib/theme-utils"
 import { getAvatarFilterFromColor } from "@/lib/color-utils"
 import type { UserRole } from "@/data/users"
-
-const PAGE_SIZE = 10
-const READ_KEY = "rzd-notifications-read"
-const HAS_UNREAD_KEY = "rzd-notifications-has-unread"
 
 interface NotificationsModalProps {
   open: boolean
@@ -89,15 +84,14 @@ function LinkifiedText({ text, color }: { text: string; color: string }) {
 
 export function NotificationsModal({ open, onOpenChange, userRole, secondaryRole, refreshKey, onUnreadChange }: NotificationsModalProps) {
   const { theme } = useTheme()
-  const [allArticles, setAllArticles] = useState<Article[]>([])
-  const [displayedArticles, setDisplayedArticles] = useState<Article[]>([])
-  const [page, setPage] = useState(0)
+  const [articles, setArticles] = useState<Article[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [authorAvatars, setAuthorAvatars] = useState<Record<string, string | null>>({})
-  const [hasMore, setHasMore] = useState(false)
 
   const getTieColor = () => getThemeColor(theme.colorTheme)
+
+  const READ_KEY = "rzd-notifications-read"
 
   const getReadIds = (): number[] => {
     try {
@@ -114,16 +108,12 @@ export function NotificationsModal({ open, onOpenChange, userRole, secondaryRole
     const current = getReadIds()
     const merged = [...new Set([...current, ...ids])]
     localStorage.setItem(READ_KEY, JSON.stringify(merged))
-    localStorage.setItem(HAS_UNREAD_KEY, "0")
   }
 
   useEffect(() => {
     if (!open) return
     setIsLoading(true)
     setError(null)
-    setPage(0)
-    setDisplayedArticles([])
-
     getArticles()
       .then(async (all) => {
         const filtered = all.filter((a) => {
@@ -132,25 +122,19 @@ export function NotificationsModal({ open, onOpenChange, userRole, secondaryRole
           if (userRole === "Тех. Администратор" || secondaryRole === "Тех. Администратор") return true
           return a.allowed_roles.includes(userRole) || (secondaryRole ? a.allowed_roles.includes(secondaryRole) : false)
         })
-        // Сортируем по дате, новые первыми
-        filtered.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-        setAllArticles(filtered)
+        setArticles(filtered)
 
         const readIds = getReadIds()
-        const unreadCount = filtered.filter((a) => !readIds.includes(Number(a.id))).length
+        const unread = filtered.filter((a) => !readIds.includes(Number(a.id)))
+
+        // Сообщаем родителю количество непрочитанных
         if (onUnreadChange) {
-          onUnreadChange(unreadCount)
+          onUnreadChange(unread.length)
         }
 
-        // Показываем первые PAGE_SIZE
-        const firstPage = filtered.slice(0, PAGE_SIZE)
-        setDisplayedArticles(firstPage)
-        setHasMore(filtered.length > PAGE_SIZE)
-
-        // Помечаем показанные как прочитанные в localStorage (сохраняется при перезагрузке)
+        // Помечаем прочитанными в localStorage (не требует Supabase)
         if (filtered.length > 0) {
           markAsRead(filtered.map((a) => Number(a.id)))
-          localStorage.setItem(HAS_UNREAD_KEY, "0")
         }
 
         // Fetch custom avatars for authors from users API
@@ -173,24 +157,13 @@ export function NotificationsModal({ open, onOpenChange, userRole, secondaryRole
       })
       .catch((err: any) => {
         setError(err?.message || "Не удалось загрузить уведомления")
-        setAllArticles([])
-        setDisplayedArticles([])
+        setArticles([])
         if (onUnreadChange) {
           onUnreadChange(0)
         }
       })
       .finally(() => setIsLoading(false))
   }, [open, userRole, secondaryRole, refreshKey, onUnreadChange])
-
-  const loadMore = () => {
-    const nextPage = page + 1
-    const start = nextPage * PAGE_SIZE
-    const end = start + PAGE_SIZE
-    const nextBatch = allArticles.slice(start, end)
-    setDisplayedArticles((prev) => [...prev, ...nextBatch])
-    setPage(nextPage)
-    setHasMore(end < allArticles.length)
-  }
 
   const getAuthorBlock = (article: Article) => {
     const isFaction = article.author_name === "Группа РЖД"
@@ -243,11 +216,6 @@ export function NotificationsModal({ open, onOpenChange, userRole, secondaryRole
     )
   }
 
-  const isUnread = (article: Article) => {
-    const readIds = getReadIds()
-    return !readIds.includes(Number(article.id))
-  }
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
@@ -291,7 +259,7 @@ export function NotificationsModal({ open, onOpenChange, userRole, secondaryRole
             </div>
           )}
 
-          {!isLoading && !error && allArticles.length === 0 && (
+          {!isLoading && !error && articles.length === 0 && (
             <div className="flex flex-col items-center gap-3 py-12">
               <div
                 className="p-4 rounded-full"
@@ -299,78 +267,56 @@ export function NotificationsModal({ open, onOpenChange, userRole, secondaryRole
               >
                 <Bell className="w-8 h-8" style={{ color: getTieColor() + "80" }} />
               </div>
-              <p className="text-sm text-muted-foreground">Нет уведомлений</p>
+              <p className="text-sm text-muted-foreground">Нет новых уведомлений</p>
             </div>
           )}
 
-          {!isLoading && !error && allArticles.length > 0 && (
-            <>
-              {displayedArticles.map((article) => (
-                <div
-                  key={article.id}
-                  className={`p-4 rounded-xl border-2 mb-3 ${
-                    theme.mode === "dark"
-                      ? "bg-white/5 border-white/10"
-                      : "bg-gray-50 border-gray-200"
-                  }`}
-                  style={{
-                    borderLeftWidth: "3px",
-                    borderLeftColor: isUnread(article) ? getTieColor() : "#94a3b8",
-                  }}
-                >
-                  {article.image_url && article.image_url.length > 0 && (
-                    <div className={`mb-3 ${article.image_url.length === 1 ? "flex justify-center" : "grid grid-cols-2 gap-2"}`}>
-                      {article.image_url.map((url, i) => (
-                        <img
-                          key={i}
-                          src={url || "/placeholder.svg"}
-                          alt={`${article.title} — изображение ${i + 1}`}
-                          className="rounded-lg w-full max-h-48 object-contain"
-                        />
-                      ))}
-                    </div>
-                  )}
-
-                  <h3 className={`font-bold text-base mb-2 ${isUnread(article) ? "text-gray-900" : "text-gray-500"}`}>
-                    <LinkifiedText text={article.title} color={getTieColor()} />
-                  </h3>
-                  <p
-                    className={`text-sm leading-relaxed whitespace-pre-wrap mb-3 ${
-                      theme.mode === "dark" ? "text-white/70" : "text-gray-600"
-                    }`}
-                  >
-                    <LinkifiedText text={article.content} color={getTieColor()} />
-                  </p>
-
-                  <div className="flex items-center gap-3 flex-wrap">
-                    {getAuthorBlock(article)}
-                    <span className={`text-xs font-medium ${isUnread(article) ? "text-red-500" : "text-muted-foreground"}`}>
-                      {isUnread(article) ? "Новое" : new Date(article.created_at).toLocaleDateString("ru-RU", {
-                        day: "2-digit",
-                        month: "long",
-                        year: "numeric",
-                      })}
-                    </span>
-                  </div>
+          {!isLoading && articles.map((article) => (
+            <div
+              key={article.id}
+              className={`p-4 rounded-xl border-2 ${
+                theme.mode === "dark"
+                  ? "bg-white/5 border-white/10"
+                  : "bg-gray-50 border-gray-200"
+              }`}
+              style={{ borderLeftWidth: "3px", borderLeftColor: getTieColor() }}
+            >
+              {article.image_url && article.image_url.length > 0 && (
+                <div className={`mb-3 ${article.image_url.length === 1 ? "flex justify-center" : "grid grid-cols-2 gap-2"}`}>
+                  {article.image_url.map((url, i) => (
+                    <img
+                      key={i}
+                      src={url || "/placeholder.svg"}
+                      alt={`${article.title} — изображение ${i + 1}`}
+                      className="rounded-lg w-full max-h-48 object-contain"
+                    />
+                  ))}
                 </div>
-              ))}
+              )}
 
-              {hasMore && (
-                <Button
-                  onClick={loadMore}
-                  className="w-full py-2"
-                  variant="outline"
-                >
-                  Показать ещё
-                </Button>
-              )}
-              {!hasMore && displayedArticles.length > 0 && (
-                <p className="text-center text-xs text-muted-foreground py-2">
-                  Все уведомления показаны
-                </p>
-              )}
-            </>
-          )}
+              <h3 className="font-bold text-base mb-2">
+                <LinkifiedText text={article.title} color={getTieColor()} />
+              </h3>
+              <p
+                className={`text-sm leading-relaxed whitespace-pre-wrap mb-3 ${
+                  theme.mode === "dark" ? "text-white/70" : "text-gray-600"
+                }`}
+              >
+                <LinkifiedText text={article.content} color={getTieColor()} />
+              </p>
+
+              <div className="flex items-center gap-3 flex-wrap">
+                {getAuthorBlock(article)}
+                <span className="text-xs text-muted-foreground">
+                  {new Date(article.created_at).toLocaleDateString("ru-RU", {
+                    day: "2-digit",
+                    month: "long",
+                    year: "numeric",
+                  })}
+                </span>
+              </div>
+            </div>
+          ))}
         </div>
       </DialogContent>
     </Dialog>
