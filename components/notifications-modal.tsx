@@ -17,7 +17,6 @@ interface NotificationsModalProps {
   userRole: UserRole
   secondaryRole?: string
   refreshKey?: string
-  onUnreadChange?: (count: number) => void
 }
 
 function RoleBadgeIcon({ role, color }: { role: string; color: string }) {
@@ -123,14 +122,6 @@ export function NotificationsModal({ open, onOpenChange, userRole, secondaryRole
           return a.allowed_roles.includes(userRole) || (secondaryRole ? a.allowed_roles.includes(secondaryRole) : false)
         })
         setArticles(filtered)
-
-        const readIds = getReadIds()
-        const unread = filtered.filter((a) => !readIds.includes(Number(a.id)))
-
-        // Сообщаем родителю количество непрочитанных
-        if (onUnreadChange) {
-          onUnreadChange(unread.length)
-        }
 
         // Помечаем прочитанными в localStorage (не требует Supabase)
         if (filtered.length > 0) {

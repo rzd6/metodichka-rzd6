@@ -27,7 +27,6 @@ import type { JSX } from "react"
 import Image from "next/image"
 import type { UserRole } from "@/data/users"
 import { getAllUsers, getEffectiveReportTag, getUserAvatar } from "@/data/users"
-import { getArticles } from "@/lib/supabase-rzd"
 import {
   canAccessManagement,
   canAccessReportCompiler,
@@ -591,35 +590,27 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed, setIsColl
     return theme.mode === "dark" ? "text-white" : "text-black"
   }
 
-  const checkUnreadCount = async () => {
+  // Читаем количество непрочитанных из localStorage (единый источник истины)
+  const readUnreadCountFromStorage = () => {
     try {
       const stored = localStorage.getItem("rzd-notifications-unread-count")
       if (stored !== null) {
         setUnreadCount(Number(stored))
-        return
       }
-      const all = await getArticles()
-      const filtered = all.filter((a) => {
-        if (!a.is_published || !Array.isArray(a.allowed_roles)) return false
-        if (user.role === "Тех. Администратор" || user.secondaryRole === "Тех. Администратор") return true
-        return a.allowed_roles.includes(user.role) || (user.secondaryRole ? a.allowed_roles.includes(user.secondaryRole) : false)
-      })
-      const read = JSON.parse(localStorage.getItem("rzd-notifications-read") || "[]")
-      const readIds = Array.isArray(read) ? read : []
-      const unreadCount = filtered.filter((a) => !readIds.includes(Number(a.id))).length
-      setUnreadCount(unreadCount)
-      localStorage.setItem("rzd-notifications-unread-count", String(unreadCount))
     } catch {
-      // Не блокируем 사이дбар из-за ошибки уведомлений
+      // Игнорируем ошибки чтения localStorage
     }
   }
 
   useEffect(() => {
-    checkUnreadCount()
+    // При montировании читаем из localStorage
+    readUnreadCountFromStorage()
+
     const closeForOnboarding = () => setShowNotifications(false)
     const closeSettingsForOnboarding = () => setShowSettings(false)
     const handleAutoOpen = () => {
-      checkUnreadCount()
+      // При автооткрытии снова читаем из localStorage (main-content мог обновить его)
+      readUnreadCountFromStorage()
       setShowNotifications(true)
     }
     window.addEventListener("closeNotificationsForOnboarding", closeForOnboarding)
@@ -633,6 +624,8 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed, setIsColl
   }, [])
 
   const handleOpenNotifications = () => {
+    // При ручном открытии тоже читаем актуальное значение из localStorage
+    readUnreadCountFromStorage()
     setShowNotifications(true)
   }
 
@@ -826,7 +819,7 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed, setIsColl
       </aside>
 
       <SettingsModal open={showSettings} onOpenChange={setShowSettings} initialTab={settingsInitialTab} onRestartOnboarding={() => { setShowSettings(false); window.dispatchEvent(new Event("restartOnboarding")) }} />
-      <NotificationsModal open={showNotifications} onOpenChange={setShowNotifications} userRole={user.role} secondaryRole={user.secondaryRole} refreshKey={vkNewsSync?.checkedAt} onUnreadChange={setUnreadCount} />
+      <NotificationsModal open={showNotifications} onOpenChange={setShowNotifications} userRole={user.role} secondaryRole={user.secondaryRole} refreshKey={vkNewsSync?.checkedAt} />
     </>
   )
 }

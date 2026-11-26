@@ -207,7 +207,7 @@ function MainContentInner() {
     refreshFromDb(userData)
 
     // Проверяем непрочитанные уведомления при заходе/обновлении страницы.
-    // Статус прочтения хранится в localStorage (ключ rzd-notifications-read).
+    // Единый источник истины — localStorage (ключ rzd-notifications-unread-count).
     const checkUnreadNotifications = async () => {
       try {
         const all = await getArticles()
@@ -217,17 +217,16 @@ function MainContentInner() {
           return a.allowed_roles.includes(userData.role) || (userData.secondaryRole ? a.allowed_roles.includes(userData.secondaryRole) : false)
         })
 
-        try {
-          const read = JSON.parse(localStorage.getItem("rzd-notifications-read") || "[]")
-          const readIds = Array.isArray(read) ? read : []
-          const unreadCount = filtered.filter((a) => !readIds.includes(Number(a.id))).length
-          localStorage.setItem("rzd-notifications-unread-count", String(unreadCount))
-          if (unreadCount > 0) {
-            localStorage.setItem("rzd-notifications-has-unread", "1")
-            window.dispatchEvent(new CustomEvent("autoOpenNotifications"))
-          }
-        } catch {
-          localStorage.setItem("rzd-notifications-unread-count", "0")
+        const read = JSON.parse(localStorage.getItem("rzd-notifications-read") || "[]")
+        const readIds = Array.isArray(read) ? read : []
+        const unreadCount = filtered.filter((a) => !readIds.includes(Number(a.id))).length
+
+        // Пишем в localStorage — сайдбар прочитает оттуда
+        localStorage.setItem("rzd-notifications-unread-count", String(unreadCount))
+
+        if (unreadCount > 0) {
+          localStorage.setItem("rzd-notifications-has-unread", "1")
+          window.dispatchEvent(new CustomEvent("autoOpenNotifications"))
         }
       } catch {
         // Не блокируем загрузку приложения из-за ошибки уведомлений
