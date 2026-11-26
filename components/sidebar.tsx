@@ -27,6 +27,7 @@ import type { JSX } from "react"
 import Image from "next/image"
 import type { UserRole } from "@/data/users"
 import { getAllUsers, getEffectiveReportTag, getUserAvatar } from "@/data/users"
+import { getArticles } from "@/lib/supabase-rzd"
 import {
   canAccessManagement,
   canAccessReportCompiler,
@@ -590,13 +591,35 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed, setIsColl
     return theme.mode === "dark" ? "text-white" : "text-black"
   }
 
+  const checkUnreadCount = async () => {
+    try {
+      const stored = localStorage.getItem("rzd-notifications-unread-count")
+      if (stored !== null) {
+        setUnreadCount(Number(stored))
+        return
+      }
+      const all = await getArticles()
+      const filtered = all.filter((a) => {
+        if (!a.is_published || !Array.isArray(a.allowed_roles)) return false
+        if (user.role === "Тех. Администратор" || user.secondaryRole === "Тех. Администратор") return true
+        return a.allowed_roles.includes(user.role) || (user.secondaryRole ? a.allowed_roles.includes(user.secondaryRole) : false)
+      })
+      const read = JSON.parse(localStorage.getItem("rzd-notifications-read") || "[]")
+      const readIds = Array.isArray(read) ? read : []
+      const unreadCount = filtered.filter((a) => !readIds.includes(Number(a.id))).length
+      setUnreadCount(unreadCount)
+      localStorage.setItem("rzd-notifications-unread-count", String(unreadCount))
+    } catch {
+      // Не блокируем 사이дбар из-за ошибки уведомлений
+    }
+  }
+
   useEffect(() => {
+    checkUnreadCount()
     const closeForOnboarding = () => setShowNotifications(false)
     const closeSettingsForOnboarding = () => setShowSettings(false)
     const handleAutoOpen = () => {
-      // При автооткрытии модалка сама пометит уведомления прочитанными через API,
-      // поэтому обнуляем счётчик сразу.
-      setUnreadCount(0)
+      checkUnreadCount()
       setShowNotifications(true)
     }
     window.addEventListener("closeNotificationsForOnboarding", closeForOnboarding)
@@ -609,9 +632,8 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed, setIsColl
     }
   }, [])
 
-  const handleOpenNotifications = async () => {
+  const handleOpenNotifications = () => {
     setShowNotifications(true)
-    setUnreadCount(0)
   }
 
   const handleLogout = () => {

@@ -220,14 +220,14 @@ function MainContentInner() {
         try {
           const read = JSON.parse(localStorage.getItem("rzd-notifications-read") || "[]")
           const readIds = Array.isArray(read) ? read : []
-          const hasUnread = filtered.some((a) => !readIds.includes(Number(a.id)))
-          if (hasUnread) {
+          const unreadCount = filtered.filter((a) => !readIds.includes(Number(a.id))).length
+          localStorage.setItem("rzd-notifications-unread-count", String(unreadCount))
+          if (unreadCount > 0) {
             localStorage.setItem("rzd-notifications-has-unread", "1")
             window.dispatchEvent(new CustomEvent("autoOpenNotifications"))
           }
         } catch {
-          localStorage.setItem("rzd-notifications-has-unread", "1")
-          window.dispatchEvent(new CustomEvent("autoOpenNotifications"))
+          localStorage.setItem("rzd-notifications-unread-count", "0")
         }
       } catch {
         // Не блокируем загрузку приложения из-за ошибки уведомлений
