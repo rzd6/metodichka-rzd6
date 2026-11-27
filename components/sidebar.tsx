@@ -589,12 +589,28 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed, setIsColl
     return theme.mode === "dark" ? "text-white" : "text-black"
   }
 
+  // Читаем количество непрочитанных из localStorage (единый источник истины)
+  const readUnreadCountFromStorage = () => {
+    try {
+      const stored = localStorage.getItem("rzd-notifications-unread-count")
+      if (stored !== null) {
+        setUnreadCount(Number(stored))
+      }
+    } catch {
+      // Игнорируем ошибки чтения localStorage
+    }
+  }
+
   useEffect(() => {
+    // При montировании читаем из localStorage
+    readUnreadCountFromStorage()
+
     const closeForOnboarding = () => setShowNotifications(false)
     const closeSettingsForOnboarding = () => setShowSettings(false)
-  const handleAutoOpen = () => {
-    setShowNotifications(true)
-  }
+    const handleAutoOpen = () => {
+      readUnreadCountFromStorage()
+      setShowNotifications(true)
+    }
     window.addEventListener("closeNotificationsForOnboarding", closeForOnboarding)
     window.addEventListener("closeSettingsForOnboarding", closeSettingsForOnboarding)
     window.addEventListener("autoOpenNotifications", handleAutoOpen)
@@ -606,6 +622,7 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed, setIsColl
   }, [])
 
   const handleOpenNotifications = () => {
+    readUnreadCountFromStorage()
     setShowNotifications(true)
   }
 
@@ -799,7 +816,7 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed, setIsColl
       </aside>
 
       <SettingsModal open={showSettings} onOpenChange={setShowSettings} initialTab={settingsInitialTab} onRestartOnboarding={() => { setShowSettings(false); window.dispatchEvent(new Event("restartOnboarding")) }} />
-      <NotificationsModal open={showNotifications} onOpenChange={setShowNotifications} userRole={user.role} secondaryRole={user.secondaryRole} refreshKey={vkNewsSync?.checkedAt} userId={user.id} onUnreadChange={setUnreadCount} />
+      <NotificationsModal open={showNotifications} onOpenChange={setShowNotifications} userRole={user.role} secondaryRole={user.secondaryRole} refreshKey={vkNewsSync?.checkedAt} />
     </>
   )
 }

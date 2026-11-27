@@ -221,7 +221,10 @@ function MainContentInner() {
         })
         const hasUnread = filtered.some((article) => !readIds.has(String(article.id)))
 
-        if (hasUnread) {
+        const unreadCount = filtered.filter((article) => !readIds.has(String(article.id))).length
+        localStorage.setItem("rzd-notifications-unread-count", String(unreadCount))
+
+        if (unreadCount > 0) {
           window.dispatchEvent(new CustomEvent("autoOpenNotifications"))
         }
       } catch {
