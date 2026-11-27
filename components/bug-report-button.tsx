@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
 import { useTheme } from "@/contexts/theme-context"
 import { getThemeColor } from "@/lib/theme-utils"
@@ -139,6 +139,9 @@ export function BugReportButton({ sectionLabel }: BugReportButtonProps) {
               </span>
               Баг-репорт
             </DialogTitle>
+            <DialogDescription className="sr-only">
+              Опишите проблему или ошибку, чтобы отправить её команде.
+            </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 pt-1">

@@ -1,6 +1,6 @@
 "use client"
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
@@ -256,6 +256,9 @@ export function SettingsModal({ open, onOpenChange, initialTab, onRestartOnboard
             <Settings className="w-5 h-5" />
             Настройки
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            Управление оформлением, аккаунтом и системными параметрами.
+          </DialogDescription>
           {/* Кнопка повторного обучения временно скрыта вместе с запуском тура. */}
           {false && onRestartOnboarding && (
             <Button type="button" variant="outline" size="sm" onClick={onRestartOnboarding} className="mt-3 w-fit">

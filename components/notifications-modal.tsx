@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, type ReactNode } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { Bell, Users, X, Crown, Shield, UsersRound, Train, Wrench, Terminal } from "lucide-react"
 import Image from "next/image"
@@ -224,6 +224,9 @@ export function NotificationsModal({ open, onOpenChange, userRole, secondaryRole
             <Bell className="w-5 h-5" />
             Уведомления
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            Список уведомлений, доступных вашей роли. Непрочитанные уведомления отмечаются при открытии.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="mt-2 space-y-3">
