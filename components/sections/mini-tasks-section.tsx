@@ -190,40 +190,37 @@ export function MiniTasksSection({ userReportTag }: MiniTasksSectionProps) {
         </div>
       </header>
 
-      <Accordion type="single" collapsible defaultValue="rules" className="flex flex-col gap-4">
-        <AccordionItem
-          value="rules"
-          className={`overflow-hidden rounded-2xl border-2 ${isDark ? "border-white/10 bg-[#0f1419]/50" : "border-gray-200 bg-white"}`}
-        >
-          <AccordionTrigger className="px-5 py-4 text-left hover:no-underline sm:px-6">
-            <span className="flex items-center gap-3">
-              <ShieldCheck className="size-5 shrink-0" style={{ color: accentColor }} aria-hidden="true" />
-              <span className={`font-bold ${isDark ? "text-white" : "text-gray-900"}`}>
-                Правила выполнения мини-заданий
+      <section
+        aria-labelledby="mini-task-rules-heading"
+        className={`overflow-hidden rounded-2xl border-2 p-5 sm:p-6 ${isDark ? "border-white/10 bg-[#0f1419]/50" : "border-gray-200 bg-white"}`}
+      >
+        <div className="mb-4 flex items-center gap-3">
+          <ShieldCheck className="size-5 shrink-0" style={{ color: accentColor }} aria-hidden="true" />
+          <h3 id="mini-task-rules-heading" className={`font-bold ${isDark ? "text-white" : "text-gray-900"}`}>
+            Правила выполнения мини-заданий
+          </h3>
+        </div>
+        <ol className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          {MINI_TASK_RULES.map((rule, index) => (
+            <li
+              key={rule}
+              className={`flex items-start gap-3 rounded-xl border p-4 ${isDark ? "border-white/10 bg-black/20 text-white/80" : "border-gray-200 bg-gray-50 text-gray-700"}`}
+              style={{ borderLeftWidth: 3, borderLeftColor: accentColor }}
+            >
+              <span
+                aria-hidden="true"
+                className="flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-bold"
+                style={{ backgroundColor: `${accentColor}20`, color: accentColor }}
+              >
+                {index + 1}
               </span>
-            </span>
-          </AccordionTrigger>
-          <AccordionContent className="px-5 pb-5 sm:px-6">
-            <ol className="grid grid-cols-1 gap-3 md:grid-cols-2">
-              {MINI_TASK_RULES.map((rule, index) => (
-                <li
-                  key={rule}
-                  className={`flex items-start gap-3 rounded-xl border p-4 ${isDark ? "border-white/10 bg-black/20 text-white/80" : "border-gray-200 bg-gray-50 text-gray-700"}`}
-                  style={{ borderLeftWidth: 3, borderLeftColor: accentColor }}
-                >
-                  <span
-                    aria-hidden="true"
-                    className="flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-bold"
-                    style={{ backgroundColor: `${accentColor}20`, color: accentColor }}
-                  >
-                    {index + 1}
-                  </span>
-                  <span className="text-sm leading-relaxed">{rule}</span>
-                </li>
-              ))}
-            </ol>
-          </AccordionContent>
-        </AccordionItem>
+              <span className="text-sm leading-relaxed">{rule}</span>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      <Accordion type="single" collapsible className="flex flex-col gap-4">
 
         <section
           aria-labelledby="loading-locations-heading"

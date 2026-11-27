@@ -156,6 +156,7 @@ export function SettingsModal({ open, onOpenChange, initialTab, onRestartOnboard
       }
       // Update localStorage
       localStorage.setItem("currentUser", JSON.stringify({ ...currentUser, password: newPassword, isDefaultPassword: false }))
+      window.dispatchEvent(new Event("userDataUpdated"))
       setPwSuccess(true)
       setOldPassword("")
       setNewPassword("")

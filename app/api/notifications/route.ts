@@ -1,76 +1,84 @@
+import { eq } from "drizzle-orm"
 import { NextRequest, NextResponse } from "next/server"
-import { getSupabaseServer } from "@/lib/supabase-server"
+import { db } from "@/lib/db"
+import { notificationReads } from "@/lib/db/schema"
 
-/**
- * GET /api/notifications/unread?user_id=xxx
- * Возвращает статьи-уведомления, которые пользователь ещё не прочитал.
- */
+export const dynamic = "force-dynamic"
+export const runtime = "nodejs"
+
+const MAX_ID_LENGTH = 128
+const MAX_ARTICLE_IDS = 1000
+
+function normalizeUserId(value: unknown): string | null {
+  if (typeof value !== "string") return null
+  const userId = value.trim()
+  return userId.length > 0 && userId.length <= MAX_ID_LENGTH ? userId : null
+}
+
+function normalizeArticleIds(input: unknown): string[] | null {
+  if (!Array.isArray(input) || input.length === 0 || input.length > MAX_ARTICLE_IDS) return null
+
+  const ids: string[] = []
+  for (const value of input) {
+    if (typeof value !== "string" && !(typeof value === "number" && Number.isSafeInteger(value))) return null
+    const articleId = String(value).trim()
+    if (!articleId || articleId.length > MAX_ID_LENGTH) return null
+    ids.push(articleId)
+  }
+
+  return [...new Set(ids)]
+}
+
 export async function GET(req: NextRequest) {
+  const userId = normalizeUserId(new URL(req.url).searchParams.get("user_id"))
+  if (!userId) {
+    return NextResponse.json({ error: "user_id is required" }, { status: 400 })
+  }
+
   try {
-    const supabase = getSupabaseServer()
-    const { searchParams } = new URL(req.url)
-    const userId = searchParams.get("user_id")
+    const rows = await db
+      .select({ articleId: notificationReads.articleId })
+      .from(notificationReads)
+      .where(eq(notificationReads.userId, userId))
 
-    if (!userId) {
-      return NextResponse.json({ error: "user_id is required" }, { status: 400 })
-    }
-
-    // Получаем ID прочитанных статей для этого пользователя
-    const { data: reads, error: readsError } = await supabase
-      .from("user_notification_reads")
-      .select("article_id")
-      .eq("user_id", userId)
-
-    if (readsError) throw readsError
-
-    const readArticleIds = (reads ?? []).map((r: { article_id: number }) => r.article_id)
-
-    // Получаем все опубликованные статьи
-    let query = supabase.from("articles").select("*").eq("is_published", true).order("created_at", { ascending: false })
-
-    // Если есть прочитанные — исключаем их
-    if (readArticleIds.length > 0) {
-      query = query.not("id", "in", `(${readArticleIds.join(",")})`)
-    }
-
-    const { data: articles, error } = await query
-
-    if (error) throw error
-
-    return NextResponse.json({ data: articles ?? [], unreadCount: (articles ?? []).length })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || "Ошибка сервера" }, { status: 500 })
+    return NextResponse.json(
+      { readArticleIds: rows.map((row) => row.articleId) },
+      { headers: { "Cache-Control": "no-store" } },
+    )
+  } catch (error) {
+    console.error("[api/notifications] Failed to load read states", error)
+    return NextResponse.json({ error: "Не удалось загрузить прочтения уведомлений" }, { status: 500 })
   }
 }
 
-/**
- * POST /api/notifications/read
- * Тело: { user_id: string, article_ids: number[] }
- * Помечает указанные статьи как прочитанные для пользователя.
- */
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
+  let body: unknown
   try {
-    const supabase = getSupabaseServer()
-    const body = await req.json()
-    const { user_id, article_ids } = body
+    body = await req.json()
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 })
+  }
 
-    if (!user_id || !Array.isArray(article_ids) || article_ids.length === 0) {
-      return NextResponse.json({ error: "user_id and article_ids are required" }, { status: 400 })
-    }
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 })
+  }
 
-    const rows = article_ids.map((article_id) => ({
-      user_id,
-      article_id,
-    }))
+  const payload = body as { user_id?: unknown; article_ids?: unknown }
+  const userId = normalizeUserId(payload.user_id)
+  const articleIds = normalizeArticleIds(payload.article_ids)
+  if (!userId || !articleIds) {
+    return NextResponse.json({ error: "user_id and valid article_ids are required" }, { status: 400 })
+  }
 
-    const { error } = await supabase.from("user_notification_reads").upsert(rows, {
-      onConflict: "user_id, article_id",
-    })
+  try {
+    await db
+      .insert(notificationReads)
+      .values(articleIds.map((articleId) => ({ userId, articleId })))
+      .onConflictDoNothing()
 
-    if (error) throw error
-
-    return NextResponse.json({ success: true, marked: article_ids.length })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || "Ошибка сервера" }, { status: 500 })
+    return NextResponse.json({ success: true, marked: articleIds.length })
+  } catch (error) {
+    console.error("[api/notifications] Failed to save read states", error)
+    return NextResponse.json({ error: "Не удалось сохранить прочтения уведомлений" }, { status: 500 })
   }
 }

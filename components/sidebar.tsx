@@ -39,6 +39,7 @@ import {
 } from "@/data/users"
 import { getThemeColor } from "@/lib/theme-utils"
 import { getAvatarFilterFromColor } from "@/lib/color-utils"
+import { getReadNotificationIds } from "@/lib/notification-reads"
 import { proxyImageUrl } from "@/lib/image-proxy"
 import {
   getBuiltinOverrides,
@@ -266,10 +267,8 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed, setIsColl
     const fetchUnread = async () => {
       try {
         const { getArticles } = await import("@/lib/supabase-rzd")
+        const readIds = await getReadNotificationIds(user.id)
         const all = await getArticles()
-        const readKey = `readArticles_${user.id || user.nickname || "guest"}`
-        const storedReadIds: unknown = JSON.parse(localStorage.getItem(readKey) || "[]")
-        const readIds = new Set(Array.isArray(storedReadIds) ? storedReadIds.map(String) : [])
         const visible = all.filter((a: any) => {
           if (!a.is_published || !Array.isArray(a.allowed_roles)) return false
           if (user.role === "Тех. Администратор" || user.secondaryRole === "Тех. Администратор") return true
@@ -278,7 +277,7 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed, setIsColl
         const count = visible.filter((a: any) => !readIds.has(String(a.id))).length
         setUnreadCount(count)
       } catch {
-        setUnreadCount(0)
+        // Keep the last known count if Neon is temporarily unavailable.
       }
     }
     fetchUnread()
@@ -609,7 +608,6 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed, setIsColl
     const closeForOnboarding = () => setShowNotifications(false)
     const closeSettingsForOnboarding = () => setShowSettings(false)
     const handleAutoOpen = () => {
-      // При автооткрытии снова читаем из localStorage (main-content мог обновить его)
       readUnreadCountFromStorage()
       setShowNotifications(true)
     }
@@ -624,7 +622,6 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed, setIsColl
   }, [])
 
   const handleOpenNotifications = () => {
-    // При ручном открытии тоже читаем актуальное значение из localStorage
     readUnreadCountFromStorage()
     setShowNotifications(true)
   }

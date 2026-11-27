@@ -10,6 +10,7 @@ import { useTheme } from "@/contexts/theme-context"
 import { getThemeColor } from "@/lib/theme-utils"
 import { getAvatarFilterFromColor } from "@/lib/color-utils"
 import type { UserRole } from "@/data/users"
+import { getReadNotificationIds, markNotificationsAsRead } from "@/lib/notification-reads"
 
 interface NotificationsModalProps {
   open: boolean
@@ -17,6 +18,8 @@ interface NotificationsModalProps {
   userRole: UserRole
   secondaryRole?: string
   refreshKey?: string
+  userId?: string
+  onUnreadChange?: (count: number) => void
 }
 
 function RoleBadgeIcon({ role, color }: { role: string; color: string }) {
@@ -81,7 +84,7 @@ function LinkifiedText({ text, color }: { text: string; color: string }) {
   return <>{parts}</>
 }
 
-export function NotificationsModal({ open, onOpenChange, userRole, secondaryRole, refreshKey, onUnreadChange }: NotificationsModalProps) {
+export function NotificationsModal({ open, onOpenChange, userRole, secondaryRole, refreshKey, userId, onUnreadChange }: NotificationsModalProps) {
   const { theme } = useTheme()
   const [articles, setArticles] = useState<Article[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -90,71 +93,73 @@ export function NotificationsModal({ open, onOpenChange, userRole, secondaryRole
 
   const getTieColor = () => getThemeColor(theme.colorTheme)
 
-  const READ_KEY = "rzd-notifications-read"
-
-  const getReadIds = (): number[] => {
-    try {
-      const raw = localStorage.getItem(READ_KEY)
-      if (!raw) return []
-      const parsed = JSON.parse(raw)
-      return Array.isArray(parsed) ? parsed.map(Number).filter(Boolean) : []
-    } catch {
-      return []
-    }
-  }
-
-  const markAsRead = (ids: number[]) => {
-    const current = getReadIds()
-    const merged = [...new Set([...current, ...ids])]
-    localStorage.setItem(READ_KEY, JSON.stringify(merged))
-  }
-
   useEffect(() => {
     if (!open) return
-    setIsLoading(true)
-    setError(null)
-    getArticles()
-      .then(async (all) => {
-        const filtered = all.filter((a) => {
-          if (!a.is_published || !Array.isArray(a.allowed_roles)) return false
+    let cancelled = false
+
+    const loadNotifications = async () => {
+      setIsLoading(true)
+      setError(null)
+
+      try {
+        if (!userId) throw new Error("Не удалось определить пользователя")
+
+        const readIds = await getReadNotificationIds(userId)
+        const all = await getArticles()
+        const filtered = all.filter((article) => {
+          if (!article.is_published || !Array.isArray(article.allowed_roles)) return false
           // Тех. Администратор (primary or secondary) sees all articles
           if (userRole === "Тех. Администратор" || secondaryRole === "Тех. Администратор") return true
-          return a.allowed_roles.includes(userRole) || (secondaryRole ? a.allowed_roles.includes(secondaryRole) : false)
+          return article.allowed_roles.includes(userRole) || (secondaryRole ? article.allowed_roles.includes(secondaryRole) : false)
         })
+        const unread = filtered.filter((article) => !readIds.has(String(article.id)))
+
+        if (cancelled) return
         setArticles(filtered)
+        onUnreadChange?.(unread.length)
 
-        // Помечаем прочитанными в localStorage (не требует Supabase)
-        if (filtered.length > 0) {
-          markAsRead(filtered.map((a) => Number(a.id)))
-        }
-
-        // Fetch custom avatars for authors from users API
-        const authorIds = [...new Set(filtered.map((a) => a.author_id).filter(Boolean))]
-        if (authorIds.length > 0) {
+        if (unread.length > 0) {
           try {
-            const res = await fetch("/api/users")
-            const json = await res.json()
-            const avatarMap: Record<string, string | null> = {}
-            for (const u of json.data || []) {
-              if (u.vk_avatar || u.avatar || u.custom_avatar) {
-                avatarMap[u.id] = u.vk_avatar || u.avatar || u.custom_avatar
-              }
+            await markNotificationsAsRead(userId, unread.map((article) => String(article.id)))
+            if (!cancelled) onUnreadChange?.(0)
+          } catch (error) {
+            if (!cancelled) {
+              setError(error instanceof Error ? error.message : "Не удалось сохранить прочтения уведомлений")
             }
-            setAuthorAvatars(avatarMap)
-          } catch {
-            // silent
           }
         }
-      })
-      .catch((err: any) => {
-        setError(err?.message || "Не удалось загрузить уведомления")
-        setArticles([])
-        if (onUnreadChange) {
-          onUnreadChange(0)
+
+        const authorIds = [...new Set(filtered.map((article) => article.author_id).filter(Boolean))]
+        if (authorIds.length > 0 && !cancelled) {
+          try {
+            const response = await fetch("/api/users")
+            const json = await response.json()
+            const avatarMap: Record<string, string | null> = {}
+            for (const author of json.data || []) {
+              if (author.vk_avatar || author.avatar || author.custom_avatar) {
+                avatarMap[author.id] = author.vk_avatar || author.avatar || author.custom_avatar
+              }
+            }
+            if (!cancelled) setAuthorAvatars(avatarMap)
+          } catch {
+            // Keep notifications visible if author avatars are unavailable.
+          }
         }
-      })
-      .finally(() => setIsLoading(false))
-  }, [open, userRole, secondaryRole, refreshKey, onUnreadChange])
+      } catch (error) {
+        if (!cancelled) {
+          setError(error instanceof Error ? error.message : "Не удалось загрузить уведомления")
+          setArticles([])
+        }
+      } finally {
+        if (!cancelled) setIsLoading(false)
+      }
+    }
+
+    void loadNotifications()
+    return () => {
+      cancelled = true
+    }
+  }, [open, userRole, secondaryRole, refreshKey, userId, onUnreadChange])
 
   const getAuthorBlock = (article: Article) => {
     const isFaction = article.author_name === "Группа РЖД"
