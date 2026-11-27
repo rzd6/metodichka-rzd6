@@ -816,7 +816,7 @@ export function Sidebar({ activeSection, onSectionChange, isCollapsed, setIsColl
       </aside>
 
       <SettingsModal open={showSettings} onOpenChange={setShowSettings} initialTab={settingsInitialTab} onRestartOnboarding={() => { setShowSettings(false); window.dispatchEvent(new Event("restartOnboarding")) }} />
-      <NotificationsModal open={showNotifications} onOpenChange={setShowNotifications} userRole={user.role} secondaryRole={user.secondaryRole} refreshKey={vkNewsSync?.checkedAt} />
+      <NotificationsModal open={showNotifications} onOpenChange={setShowNotifications} userRole={user.role} secondaryRole={user.secondaryRole} refreshKey={vkNewsSync?.checkedAt} userId={user.id} onUnreadChange={setUnreadCount} />
     </>
   )
 }

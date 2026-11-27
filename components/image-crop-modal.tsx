@@ -1,7 +1,7 @@
 "use client"
 
 import { useRef, useState, useEffect, useCallback } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { ZoomIn, ZoomOut, RotateCcw, Check, X } from "lucide-react"
 
@@ -208,9 +208,9 @@ export function ImageCropModal({ open, onOpenChange, imageSrc, mode, onCrop }: I
           <DialogTitle>
             {mode === "avatar" ? "Обрезать аватар" : "Обрезать фон"}
           </DialogTitle>
-          <p className="text-sm text-muted-foreground">
+          <DialogDescription className="text-sm text-muted-foreground">
             Перетаскивайте картинку, колёсиком или кнопками масштабируйте — выбранная область в рамке
-          </p>
+          </DialogDescription>
         </DialogHeader>
 
         {/* Canvas area — fills remaining space */}
