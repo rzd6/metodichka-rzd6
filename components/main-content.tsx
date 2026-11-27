@@ -11,6 +11,7 @@ import { getAllUsers } from "@/data/users"
 import { getThemeColor } from "@/lib/theme-utils"
 import { proxyImageUrl } from "@/lib/image-proxy"
 import { getArticles } from "@/lib/supabase-rzd"
+import { getReadNotificationIds } from "@/lib/notification-reads"
 import { OnboardingTour } from "@/components/onboarding-tour"
 
 interface LocalUser {
@@ -206,31 +207,25 @@ function MainContentInner() {
 
     refreshFromDb(userData)
 
-    // Проверяем непрочитанные уведомления при заходе/обновлении страницы.
-    // Статус прочтения хранится в localStorage (ключ rzd-notifications-read).
+    // Read persisted states before loading articles so automatic opening follows Neon data.
     const checkUnreadNotifications = async () => {
+      if (!userData.id) return
+
       try {
+        const readIds = await getReadNotificationIds(userData.id)
         const all = await getArticles()
         const filtered = all.filter((a) => {
           if (!a.is_published || !Array.isArray(a.allowed_roles)) return false
           if (userData.role === "Тех. Администратор" || userData.secondaryRole === "Тех. Администратор") return true
           return a.allowed_roles.includes(userData.role) || (userData.secondaryRole ? a.allowed_roles.includes(userData.secondaryRole) : false)
         })
+        const hasUnread = filtered.some((article) => !readIds.has(String(article.id)))
 
-        try {
-          const read = JSON.parse(localStorage.getItem("rzd-notifications-read") || "[]")
-          const readIds = Array.isArray(read) ? read : []
-          const hasUnread = filtered.some((a) => !readIds.includes(Number(a.id)))
-          if (hasUnread) {
-            localStorage.setItem("rzd-notifications-has-unread", "1")
-            window.dispatchEvent(new CustomEvent("autoOpenNotifications"))
-          }
-        } catch {
-          localStorage.setItem("rzd-notifications-has-unread", "1")
+        if (hasUnread) {
           window.dispatchEvent(new CustomEvent("autoOpenNotifications"))
         }
       } catch {
-        // Не блокируем загрузку приложения из-за ошибки уведомлений
+        // Keep the app usable if notification read states are temporarily unavailable.
       }
     }
     checkUnreadNotifications()
