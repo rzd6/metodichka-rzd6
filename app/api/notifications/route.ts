@@ -1,13 +1,12 @@
-import { eq } from "drizzle-orm"
 import { NextRequest, NextResponse } from "next/server"
-import { db } from "@/lib/db"
-import { notificationReads } from "@/lib/db/schema"
+import { getSupabaseServer } from "@/lib/supabase-server"
 
 export const dynamic = "force-dynamic"
-export const runtime = "nodejs"
+export const runtime = "edge"
 
 const MAX_ID_LENGTH = 128
 const MAX_ARTICLE_IDS = 1000
+const MAX_READ_STATES = 5000
 
 function normalizeUserId(value: unknown): string | null {
   if (typeof value !== "string") return null
@@ -36,13 +35,16 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const rows = await db
-      .select({ articleId: notificationReads.articleId })
-      .from(notificationReads)
-      .where(eq(notificationReads.userId, userId))
+    const { data, error } = await getSupabaseServer()
+      .from("user_notification_reads")
+      .select("article_id")
+      .eq("user_id", userId)
+      .limit(MAX_READ_STATES)
+
+    if (error) throw error
 
     return NextResponse.json(
-      { readArticleIds: rows.map((row) => row.articleId) },
+      { readArticleIds: (data ?? []).map((row: { article_id: string }) => row.article_id) },
       { headers: { "Cache-Control": "no-store" } },
     )
   } catch (error) {
@@ -71,10 +73,14 @@ export async function POST(req: Request) {
   }
 
   try {
-    await db
-      .insert(notificationReads)
-      .values(articleIds.map((articleId) => ({ userId, articleId })))
-      .onConflictDoNothing()
+    const { error } = await getSupabaseServer()
+      .from("user_notification_reads")
+      .upsert(
+        articleIds.map((articleId) => ({ user_id: userId, article_id: articleId })),
+        { onConflict: "user_id,article_id", ignoreDuplicates: true },
+      )
+
+    if (error) throw error
 
     return NextResponse.json({ success: true, marked: articleIds.length })
   } catch (error) {
